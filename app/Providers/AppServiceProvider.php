@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Database\Schema\Builder;
 
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -27,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        
+        Schema::defaultStringLength(191);
         Collection::macro('paginate', function(int $perPage = 10, $page = null, $options = []) {
             /** @var Collection $this */
             $page = $page ?: (Paginator::resolveCurrentPage() ?: 1);
@@ -39,6 +40,5 @@ class AppServiceProvider extends ServiceProvider
                 $options
             );
         });
-        Builder::defaultStringLength(191); 
     }
 }
