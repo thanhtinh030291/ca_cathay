@@ -126,9 +126,9 @@ class ReasonRejectController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(ReasonReject $reasonReject)
     {
-        $data = ReasonReject::findOrFail($id);
+        $data = $reasonReject;
         $data->delete();
         return redirect('/admin/reason_reject')->with('status', __('message.reason_inject_delete_success'));
     }
