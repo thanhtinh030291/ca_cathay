@@ -203,7 +203,7 @@ class ClaimController extends Controller
             $dataNew += ['url_file'  =>  $imageName];
         }
         $dataNew += [
-            'mantis_id' => $issue->first()->bug_id,
+            'mantis_id' => $request->barcode,
             'created_user' =>  $userId,
             'updated_user' =>  $userId,
         ];
