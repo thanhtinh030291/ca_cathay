@@ -180,24 +180,19 @@ class ClaimController extends Controller
     {
         $claim_type = $request->claim_type;
         //validate
-        $mantis_policy = MANTIS_CUSTOM_FIELD_STRING::where('bug_id',(int)$request->barcode)->where('field_id',1)->first();
-        $pocy_ref_no = (int)HBS_CL_CLAIM::findOrFail((int)$request->code_claim)->Police->pocy_ref_no;
-        if($mantis_policy){
-            if($pocy_ref_no != (int)$mantis_policy->value){
-                $request->session()->flash('errorStatus', 'Policy No trên HBS và Mantis chưa đồng nhất');
-                return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
-            }
-        }else{
-            $request->session()->flash('errorStatus', 'Vui Lòng cập nhật Policy No trên Etalk');
+        $issue = MANTIS_CUSTOM_FIELD_STRING::where('value',(int)$request->barcode)->where('field_id',14)->get();
+        if($issue->count() != 1){
+            $request->session()->flash('errorStatus', 'Phải tồn tại duy nhất 1 Common ID trên Health Etalk ');
             return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
         }
-
+        
         //end valid
         if ($request->_url_file_sorted) {
             saveFile($request->_url_file_sorted[0], config('constants.sortedClaimUpload'));
         }
         $file = $request->file;
         $dataNew = $request->except(['file','file2','table2_parameters', 'table1_parameters']);
+        
         $user = Auth::User();
         $userId = $user->id;
         $dirUpload = Config::get('constants.formClaimUpload');
@@ -208,6 +203,7 @@ class ClaimController extends Controller
             $dataNew += ['url_file'  =>  $imageName];
         }
         $dataNew += [
+            'mantis_id' => $issue->first()->bug_id,
             'created_user' =>  $userId,
             'updated_user' =>  $userId,
         ];
@@ -298,6 +294,7 @@ class ClaimController extends Controller
         $list_status_ad = RoleChangeStatus::pluck('name','id');
         $export_letter = $data->export_letter;
         $user = Auth::User();
+        $IS_FREEZED = 0;
         
         foreach ($export_letter as $key => $value) {
             if($value->letter_template->level != 0){
@@ -335,9 +332,6 @@ class ClaimController extends Controller
             $user_create = User::findOrFail($value->created_user);
             if($claim->jetcase == 1){
                 $export_letter[$key]['end_status'] = 10;
-            }
-            elseif( $user_create->hasRole('Claim Independent') && removeFormatPrice(data_get($value->info, 'approve_amt')) <= 50000000){
-                $export_letter[$key]['end_status'] = 26;
             }else{
                 $export_letter[$key]['end_status'] = $level->end_status;
             }
@@ -345,47 +339,52 @@ class ClaimController extends Controller
                 $export_letter[$key]['list_status'] = collect([]);
             }
         }
+        
         try {
             $HBS_CL_CLAIM = HBS_CL_CLAIM::IOPDiag()->findOrFail($claim->code_claim);
-            $MessageComfirmConract = $HBS_CL_CLAIM->member->MessageComfirmConract;
+            
             $payment_history_cps = json_decode(AjaxCommonController::getPaymentHistoryCPS($data->code_claim_show)->getContent(),true);
             $payment_history = data_get($payment_history_cps,'data_full',[]);
             $approve_amt = data_get($payment_history_cps,'approve_amt');
             $present_amt = data_get($payment_history_cps,'present_amt');
             
-            $payment_method = data_get($payment_history_cps,'payment_method');
-            $pocy_ref_no = data_get($payment_history_cps,'pocy_ref_no');
-            $memb_ref_no = data_get($payment_history_cps,'memb_ref_no');
+            $payment_method = $claim_type == "P" ? "TT" :  data_get($payment_history_cps,'payment_method');
+            $pocy_no = data_get($payment_history_cps,'pocy_no');
+            $memb_no = data_get($payment_history_cps,'memb_no');
             $member_name = data_get($payment_history_cps,'member_name');
-            $balance_cps = json_decode(AjaxCommonController::getBalanceCPS($data->clClaim->member->memb_ref_no , $data->code_claim_show)->getContent(),true);
+            $balance_cps = json_decode(AjaxCommonController::getBalanceCPS($data->clClaim->member->mbr_no , $data->code_claim_show)->getContent(),true);
             $balance_cps = collect(data_get($balance_cps, 'data_full'));
             $tranfer_amt = (int)$approve_amt - (int)collect($payment_history)->sum('TF_AMT')-$balance_cps->sum('DEBT_BALANCE');
             
         } catch (\Throwable $th) {
-            $MessageComfirmConract ="";
             $payment_history = [];
             $approve_amt = 0;
             $tranfer_amt = 0;
             $present_amt = 0;
             $member_name = "";
-            $pocy_ref_no = "";
-            $memb_ref_no = "";
+            $pocy_no = "";
+            $memb_no = "";
             $payment_method = "";
             $balance_cps = collect([]);
         }
-        $can_pay_rq = json_decode(json_encode(GetApiMantic('api/rest/plugins/apimanagement/issues/finish/'.$data->barcode)),true);
-        $can_pay_rq = data_get($can_pay_rq,'status') == 'success' ? 'success' : 'error';
+        $can_pay_rq = true;
+        $count_ap = $export_letter->where('apv_amt',$approve_amt)->where('approve',"!=",null)->count();
+        if($count_ap > 0){
+            $can_pay_rq = true;
+        }
+        
         $manager_gop_accept_pay = 'error';
         $hospital_request = $claim->hospital_request;
         $list_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('text', 'id') : [];
         $selected_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('id') : null;
         $fromEmail = $claim->inbox_email ? $claim->inbox_email->from . "," . implode(",", $claim->inbox_email->to) : "";
-        
+
         $reject_code = collect($claim->RejectCode)->flatten(1)->values()->all();
         $compact = compact(['data', 'dataImage', 'items', 'admin_list', 'listReasonReject', 
         'listLetterTemplate' , 'list_status_ad', 'user', 'payment_history', 'approve_amt','tranfer_amt','present_amt',
-        'payment_method','pocy_ref_no','memb_ref_no', 'member_name', 'balance_cps', 'can_pay_rq',
-        'CsrFile','manager_gop_accept_pay','hospital_request', 'list_diagnosis', 'selected_diagnosis', 'fromEmail','reject_code','MessageComfirmConract']);
+        'payment_method','pocy_no','memb_no', 'member_name', 'balance_cps', 'can_pay_rq',
+        'CsrFile','manager_gop_accept_pay','hospital_request', 'list_diagnosis', 'selected_diagnosis', 'fromEmail','reject_code','IS_FREEZED'
+        ]);
         if ($claim_type == 'P'){
             return view('claimGOPManagement.show', $compact);
         }else{
@@ -404,6 +403,7 @@ class ClaimController extends Controller
 
     public function uploadSortedFileGOP(Request $request, $id){
         $claim = Claim::findOrFail($id);
+        $HBS_CL_CLAIM = HBS_CL_CLAIM::findOrFail($claim->code_claim);
         $user = Auth::User();
         if ($request->_url_file_sorted) {
             $dataUpdate['url_file_sorted'] = saveFile($request->_url_file_sorted[0], config('constants.sortedClaimUpload'),$claim->url_file_sorted);
@@ -440,7 +440,22 @@ class ClaimController extends Controller
                 );
                 return redirect('/admin/claim/'.$id)->withInput();
             }
+
         }
+        $claim->report_admin()->updateOrCreate([],
+            [   
+                'MEMB_NAME' => $HBS_CL_CLAIM->MemberNameCap,
+                'POCY_REF_NO' => $HBS_CL_CLAIM->police->pocy_ref_no,
+                'MEMB_REF_NO' => $HBS_CL_CLAIM->member->memb_ref_no,
+                'PRES_AMT' => $HBS_CL_CLAIM->sumPresAmt,
+                'INV_NO' => $HBS_CL_CLAIM->invNo,
+                'PROV_NAME' => $HBS_CL_CLAIM->FirstLine->prov_name,
+                'RECEIVE_DATE' => Carbon::now()->toDateString(),
+                'created_user' => $user->id,
+                'updated_user' => $user->id,
+                'CL_NO' => $claim->code_claim_show, 
+            ]
+        );
         $request->session()->flash('status', 'Đã Cập nhật hồ sơ GOP Thành Công');
         return redirect('/admin/claim/'.$id);
     }
@@ -606,41 +621,41 @@ class ClaimController extends Controller
         //validate
             $now = Carbon::now()->toDateTimeString();
             $HBS_CL_CLAIM = HBS_CL_CLAIM::findOrFail($claim->code_claim);
-            $count_provider_not = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('prov_oid',config('constants.not_provider'))->count();
-            if($count_provider_not > 0){
-                return redirect('/admin/claim/'.$claim_id)->with('errorStatus', 'Tồn tại provider: "BUMRUNGRAD INTERNATIONAL HOSPITAL" vui lòng cập nhật lại HBS ');
-            }
-            $memb_ref_no = $HBS_CL_CLAIM->member->memb_ref_no;
-            $all_memb_oid = HBS_MR_MEMBER::where('memb_ref_no', $memb_ref_no)->pluck('memb_oid')->toArray();
-            $conditionPLB = function ($q) {
-                $q->with(['PD_BEN_HEAD']);
-            };
-            $conditionMPPB = function ($q) use ($conditionPLB){
-                $q->with(['PD_PLAN_BENEFIT' => $conditionPLB]);
-                $q->where('ben_type_ind','Y');
-            };
-            $conditionMPL = function ($q) use($conditionMPPB){
-                $q->with(['MR_POLICY_PLAN_BENEFIT' => $conditionMPPB]);
-            };
-            $HBS_MR_MEMBER_PLAN = HBS_MR_MEMBER_PLAN::whereIn('memb_oid',$all_memb_oid)
-            ->where('MR_MEMBER_PLAN.EFF_DATE','<=',$now)
-            ->where('MR_MEMBER_PLAN.EXP_DATE','>=',$now)
-            ->with(['MR_POLICY_PLAN' => $conditionMPL])
-            ->where('status', null)
-            ->where('term_date',null)->get();
-            if($HBS_MR_MEMBER_PLAN->count() > 1){
-                $all_pl = [];
-                foreach ($HBS_MR_MEMBER_PLAN as $key => $value) {
-                    $tyles_bn = $value->MR_POLICY_PLAN->MR_POLICY_PLAN_BENEFIT->pluck('PD_PLAN_BENEFIT.PD_BEN_HEAD.scma_oid_ben_type');
-                    foreach ($tyles_bn as $key2 => $value2) {
-                        $all_pl[] = $value2;
-                    }
+            // $count_provider_not = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('prov_oid',config('constants.not_provider'))->count();
+            // if($count_provider_not > 0){
+            //     return redirect('/admin/claim/'.$claim_id)->with('errorStatus', 'Tồn tại provider: "BUMRUNGRAD INTERNATIONAL HOSPITAL" vui lòng cập nhật lại HBS ');
+            // }
+            // $memb_ref_no = $HBS_CL_CLAIM->member->memb_ref_no;
+            // $all_memb_oid = HBS_MR_MEMBER::where('memb_ref_no', $memb_ref_no)->pluck('memb_oid')->toArray();
+            // $conditionPLB = function ($q) {
+            //     $q->with(['PD_BEN_HEAD']);
+            // };
+            // $conditionMPPB = function ($q) use ($conditionPLB){
+            //     $q->with(['PD_PLAN_BENEFIT' => $conditionPLB]);
+            //     $q->where('ben_type_ind','Y');
+            // };
+            // $conditionMPL = function ($q) use($conditionMPPB){
+            //     $q->with(['MR_POLICY_PLAN_BENEFIT' => $conditionMPPB]);
+            // };
+            // $HBS_MR_MEMBER_PLAN = HBS_MR_MEMBER_PLAN::whereIn('memb_oid',$all_memb_oid)
+            // ->where('MR_MEMBER_PLAN.EFF_DATE','<=',$now)
+            // ->where('MR_MEMBER_PLAN.EXP_DATE','>=',$now)
+            // ->with(['MR_POLICY_PLAN' => $conditionMPL])
+            // ->where('status', null)
+            // ->where('term_date',null)->get();
+            // if($HBS_MR_MEMBER_PLAN->count() > 1){
+            //     $all_pl = [];
+            //     foreach ($HBS_MR_MEMBER_PLAN as $key => $value) {
+            //         $tyles_bn = $value->MR_POLICY_PLAN->MR_POLICY_PLAN_BENEFIT->pluck('PD_PLAN_BENEFIT.PD_BEN_HEAD.scma_oid_ben_type');
+            //         foreach ($tyles_bn as $key2 => $value2) {
+            //             $all_pl[] = $value2;
+            //         }
                     
-                }
-                if( count($all_pl) != count(array_unique($all_pl))){
-                    return redirect('/admin/claim/'.$claim_id)->with('errorStatus', 'Tồn tại đồng thời Plan trùng nhau Vui lòng báo NB Terminate ');
-                }
-            }
+            //     }
+            //     if( count($all_pl) != count(array_unique($all_pl))){
+            //         return redirect('/admin/claim/'.$claim_id)->with('errorStatus', 'Tồn tại đồng thời Plan trùng nhau Vui lòng báo NB Terminate ');
+            //     }
+            // }
         //end Validate
         $claim->touch();
         $id = $request->id;
@@ -668,27 +683,8 @@ class ClaimController extends Controller
                                     'PCV_EXPENSE' => data_get($export_letter->info,'PCV_EXPENSE') , 
                                     "DEBT_BALANCE" => data_get($export_letter->info,'DEBT_BALANCE') ];
             $export_letter->apv_amt = preg_replace('/[^0-9]/', "", $approve_amt);
-            //save log hbs approve
-            if($export_letter->log_hbs_approved){
-                $export_letter->log_hbs_approved()->update([
-                    'cl_no' => $claim->code_claim_show,
-                    'hbs' => json_encode(HBS_CL_CLAIM::HBSData()->where('CL_NO',$claim->code_claim_show)->first()->toArray(),true),
-                    'MANTIS_ID' => $claim->barcode,
-                    'MEMB_NAME' => $HBS_CL_CLAIM->MemberNameCap,
-                    'POCY_REF_NO' =>  $HBS_CL_CLAIM->police->pocy_ref_no,
-                    'MEMB_REF_NO' => $HBS_CL_CLAIM->member->memb_ref_no,
-                ]);
-            }else{
-                $export_letter->log_hbs_approved()->create([
-                    'cl_no' => $claim->code_claim_show,
-                    'hbs' => json_encode(HBS_CL_CLAIM::HBSData()->where('CL_NO',$claim->code_claim_show)->first()->toArray(),true),
-                    'MANTIS_ID' => $claim->barcode,
-                    'MEMB_NAME' => $HBS_CL_CLAIM->MemberNameCap,
-                    'POCY_REF_NO' =>  $HBS_CL_CLAIM->police->pocy_ref_no,
-                    'MEMB_REF_NO' => $HBS_CL_CLAIM->member->memb_ref_no,
-
-                ]);
-            }
+            
+            
 
         }else{
             $status_change = $request->status_change;
@@ -704,21 +700,21 @@ class ClaimController extends Controller
                 $export_letter->approve = null;
             }
             if($status_change[1] == 'approved'){ //nofice
-                if($user->hasRole('Claim')){
-                    $leader = $user->Leader;
-                    if($leader != null){
-                        $to_user = [$leader];
-                    }
-                }
-                if($request->status_change != 26 && ($user->hasRole('Lead') || $user->hasRole('Claim Independent'))){
-                    $to_user = User::whereHas("roles", function($q){ $q->where("name", "QC"); })->get()->pluck('id')->toArray();
-                    $to_user = [Arr::random($to_user)];
-                }
-                if(($user_create->hasRole('Claim') || $user_create->hasRole('Lead')) && $user->hasRole('QC') && removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 30000000){
+                // if($user->hasRole('Claim')){
+                //     $leader = $user->Leader;
+                //     if($leader != null){
+                //         $to_user = [$leader];
+                //     }
+                // }
+                // if($request->status_change != 26 && ($user->hasRole('Lead') || $user->hasRole('Claim Independent'))){
+                //     $to_user = User::whereHas("roles", function($q){ $q->where("name", "QC"); })->get()->pluck('id')->toArray();
+                //     $to_user = [Arr::random($to_user)];
+                // }
+                if(  $user->hasRole('Claim Independent') && removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 20000000){
                     $to_user = [$user_create->supper];
                 }
                 
-                if( $request->status_change != 4  && $user->hasRole('Supper') &&  removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 50000000){
+                if( $user->hasRole('Supper') &&  removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 50000000){
                     $to_user = [$user_create->manager];
                 }
 
@@ -764,16 +760,17 @@ class ClaimController extends Controller
             $list_level = LevelRoleStatus::all();
             $level = $this->getLevel($export_letter, $list_level, $claim->claim_type);
             if($claim->jetcase == 1 && $user->hasRole('QC')){
-                $approve_user_sign = $claim_type == "P" ? getUserSignThumb($user->id) : getUserSign($user->id);
+                $per_approve_sign_replace = $claim_type == "P" ? getUserSignThumb() : getUserSign();
+                $approve_user_sign = $user->name;
                 if($export_letter->letter_template->letter_payment == null){
                     $export_letter->approve = [  'user' => $user->id,
                         'created_at' => Carbon::now()->toDateTimeString(),
-                        'data' => str_replace('[[$per_approve_sign]]', $approve_user_sign, data_get($export_letter->wait, "data")),
+                        'data' => str_replace(['[[$per_approve_sign]]','[[$per_approve_sign_replace]]'], [$approve_user_sign,$per_approve_sign_replace], data_get($export_letter->wait, "data")),
                     ];
                 }else{
                     $export_letter->approve = [  'user' => $user->id,
                         'created_at' => Carbon::now()->toDateTimeString(),
-                        'data' => str_replace('[[$per_approve_sign]]', $approve_user_sign, data_get($export_letter->wait, "data")),
+                        'data' => str_replace(['[[$per_approve_sign]]','[[$per_approve_sign_replace]]'], [$approve_user_sign,$per_approve_sign_replace], data_get($export_letter->wait, "data")),
                         'data_payment' => base64_encode($this->letterPayment($export_letter->letter_template->letter_payment , $request->claim_id , $id, 1, $user_create->supper)['content'])
                     ];
                     
@@ -792,16 +789,17 @@ class ClaimController extends Controller
                 ]);
 
             }elseif($level->signature_accepted_by == $status_change[0] || ($user_create->hasRole('Claim Independent') && $user->hasRole('Manager'))){
-                $approve_user_sign = $claim_type == "P" ? getUserSignThumb($user->id) : getUserSign($user->id);
+                $per_approve_sign_replace = $claim_type == "P" ? getUserSignThumb() : getUserSign();
+                $approve_user_sign = $user->name;
                 if($export_letter->letter_template->letter_payment == null){
                     $export_letter->approve = [  'user' => $user->id,
                         'created_at' => Carbon::now()->toDateTimeString(),
-                        'data' => str_replace('[[$per_approve_sign]]', $approve_user_sign, data_get($export_letter->wait, "data")),
+                        'data' => str_replace(['[[$per_approve_sign]]','[[$per_approve_sign_replace]]'], [$approve_user_sign,$per_approve_sign_replace], data_get($export_letter->wait, "data")),
                     ];
                 }else{
                     $export_letter->approve = [  'user' => $user->id,
                         'created_at' => Carbon::now()->toDateTimeString(),
-                        'data' => str_replace('[[$per_approve_sign]]', $approve_user_sign, data_get($export_letter->wait, "data")),
+                        'data' => str_replace(['[[$per_approve_sign]]','[[$per_approve_sign_replace]]'], [$approve_user_sign,$per_approve_sign_replace], data_get($export_letter->wait, "data")),
                         'data_payment' => base64_encode($this->letterPayment($export_letter->letter_template->letter_payment , $request->claim_id , $id, 1)['content'])
                     ];
                     
@@ -871,7 +869,7 @@ class ClaimController extends Controller
         return redirect('/admin/claim/'.$claim_id)->with('status', __('message.update_claim'));
     }
     // send Etalk 
-    public function sendEtalk(sendEtalkRequest $request){
+    public function sendEtalk(Request $request){
         $claim_id = $request->claim_id;
         $barcode = $request->barcode;
         $id = $request->id;
@@ -882,8 +880,8 @@ class ClaimController extends Controller
         $namefile = Str::slug("{$export_letter->letter_template->name}_{$HBS_CL_CLAIM->memberNameCap}", '-');
         $body = [
             'user_email' => $user->email,
-            'issue_id' => $barcode,
-            'text_note' => " Dear DLVN, \n PCV gửi là thư  '{$export_letter->letter_template->name}'  và chi tiết theo như file đính kèm. \n Thanks,",
+            'issue_id' => $claim->mantis_id,
+            'text_note' => " Dear CS,  \n Claim gửi là thư  '{$export_letter->letter_template->name}'  và chi tiết theo như file đính kèm. \n Thanks,",
 
         ];
         if($claim->claim_type == 'M'){
@@ -962,7 +960,7 @@ class ClaimController extends Controller
             
             $diff = $HBS_CL_CLAIM->SumPresAmt - $HBS_CL_CLAIM->SumAppAmt ;
             
-            if($HBS_CL_CLAIM->SumPresAmt == 0 ){
+            if($HBS_CL_CLAIM->SumAppAmt == 0 ){
                 $body['status_id'] = config('constants.status_mantic_value.declined');
             }elseif($diff == 0){
                 $body['status_id'] = config('constants.status_mantic_value.accepted');
@@ -1011,34 +1009,23 @@ class ClaimController extends Controller
      // change Etalk 
     public function changeStatusEtalk(sendEtalkRequest $request){
         $claim_id = $request->claim_id;
-        $barcode = $request->barcode;
-        $id = $request->id;
-        $export_letter = ExportLetter::findOrFail($id);
         $user = Auth::User();
         $claim  = Claim::itemClaimReject()->findOrFail($claim_id);
+        $barcode = $claim->barcode;
         $HBS_CL_CLAIM = HBS_CL_CLAIM::IOPDiag()->findOrFail($claim->code_claim);
-        $namefile = Str::slug("{$export_letter->letter_template->name}_{$HBS_CL_CLAIM->memberNameCap}", '-');
         $body = [
             'user_email' => $user->email,
             'issue_id' => $barcode,
-            'text_note' => $request->message,
+            'text_note' => 'Cập nhật lại status',
 
         ];
-        if($export_letter->letter_template->status_mantis != NULL ){
-            $body['status_id'] = $export_letter->letter_template->status_mantis;
-        }
-        
-        if($export_letter->letter_template->name == 'Thanh Toán Bổ Sung'){
-            
-            $diff = $HBS_CL_CLAIM->SumPresAmt - $HBS_CL_CLAIM->SumAppAmt ;
-            
-            if($HBS_CL_CLAIM->SumPresAmt == 0 ){
+        $diff = $HBS_CL_CLAIM->SumPresAmt - $HBS_CL_CLAIM->SumAppAmt ;
+        if($HBS_CL_CLAIM->SumAppAmt == 0 ){
                 $body['status_id'] = config('constants.status_mantic_value.declined');
-            }elseif($diff == 0){
+        }elseif($diff == 0){
                 $body['status_id'] = config('constants.status_mantic_value.accepted');
-            }else {
+        }else {
                 $body['status_id'] = config('constants.status_mantic_value.partiallyaccepted');
-            }
         }
         
         try {
@@ -1308,15 +1295,17 @@ class ClaimController extends Controller
         $data = $this->letter($letter_template_id , $claim_id,  $export_letter_id);
         $export_letter = ExportLetter::findOrFail($export_letter_id);
         $user_create = User::findOrFail($export_letter->created_user);
-        
+        $claim  = Claim::findOrFail($claim_id);
+        $claim_type = $claim->claim_type;
         //$create_user_sign = getUserSign($export_letter->created_user);
         $create_user_sign = $user_create->name;
         $data['content'] = str_replace('[[$per_creater_sign]]', $create_user_sign, $data['content']);
 
         if($approve != null){
             $user = Auth::user();
-            $approve_user_sign = $id_user_sign == null ? getUserSign($user->id) : getUserSign($id_user_sign);
-            $data['content'] = str_replace('[[$per_approve_sign]]', $approve_user_sign, $data['content']);
+            $per_approve_sign_replace = $claim_type == "P" ? getUserSignThumb() : getUserSign();
+            $approve_user_sign = $user->name;
+            $data['content'] = str_replace(['[[$per_approve_sign]]','[[$per_approve_sign_replace]]'], [$approve_user_sign,$per_approve_sign_replace], $data['content']);
         }else{
             $data['content'] = str_replace('[[$per_approve_sign]]', "", $data['content']);
         }
@@ -1391,11 +1380,11 @@ class ClaimController extends Controller
         $tableInfo = $this->tableInfoPayment($HBS_CL_CLAIM);
         $incurDateTo = Carbon::parse($HBS_CL_CLAIM->FirstLine->incur_date_to);
         $incurDateFrom = Carbon::parse($HBS_CL_CLAIM->FirstLine->incur_date_from);
-        $RBGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['RB','ICU'])->sum('app_amt');
-        $SURGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['SUR','OPR','ANES'])->sum('app_amt');
+        $RBGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['RB'])->sum('app_amt');
+        $SURGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['SUR','OPR','ANES','RADIA','CHEMO'])->sum('app_amt');
         $EXTBGOP = $HBS_CL_CLAIM->HBS_CL_LINE->where('PD_BEN_HEAD.ben_head','EXTB')->sum('app_amt');
         $ICUGOP = $HBS_CL_CLAIM->HBS_CL_LINE->where('PD_BEN_HEAD.ben_head','ICU')->sum('app_amt');
-        $OTHERGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereNotIn('PD_BEN_HEAD.ben_head',['RB','SUR','EXTB','ICU','OPR','ANES'])->sum('app_amt');
+        $OTHERGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereNotIn('PD_BEN_HEAD.ben_head',['RB','SUR','EXTB','ICU','OPR','ANES','RADIA','CHEMO'])->sum('app_amt');
         $ProApvAmt = data_get($claim->hospital_request,'prov_gop_pres_amt',0) - $sumAmountReject;
         $typeGOP = typeGop(data_get($claim->hospital_request,'type_gop',0));
         $noteGOP = data_get($claim->hospital_request,'note',"");
@@ -1477,12 +1466,10 @@ class ClaimController extends Controller
                     <thead>
                         <tr>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt" rowspan="2">Quyền lợi</th>
-                            <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Giới hạn thanh toán</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Số tiền yêu cầu bồi thường (Căn cứ trên chứng từ hợp lệ) </th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Số tiền thanh toán</th>
                         </tr>
                         <tr>
-                            <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                         </tr>
@@ -1510,7 +1497,6 @@ class ClaimController extends Controller
         foreach ($IP as $keyIP => $valueIP) {
             $html .= '<tr>
                     <td style="border: 1px solid black; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Nội Trú</td>
-                    <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Mỗi bệnh /thương tật </td>
                     <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                     <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                 </tr>';
@@ -1551,7 +1537,6 @@ class ClaimController extends Controller
                 $html .=    '
                             <tr>
                                 <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content.'</td>
-                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$range_pay.'</td>
                                 <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt ; text-align: center; vertical-align: middle;">'.formatPrice($value->pres_amt).'</td>
                                 <td style="border: 1px solid black ; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                             </tr>
@@ -1585,14 +1570,12 @@ class ClaimController extends Controller
                 
                 $html .= '<tr>
                             <td style="border: 1px solid black ; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Ngoại Trú</td>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Tối đa  '.formatPrice(data_get($limit,'amt_yr')).' mỗi năm</td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                         </tr>';
             }
             $html .=    '<tr>
                             <td style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content.'</td>
-                            <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content_limit.'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1607,14 +1590,12 @@ class ClaimController extends Controller
                 
                 $html .= '<tr>
                             <td style="border: 1px solid black ; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Răng</td>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Tối đa  '.formatPrice(data_get($limit,'amt_yr')).' mỗi năm</td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                         </tr>';
             }
             $html .=    '<tr>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Chi phí điều trị nha khoa '.$value->RT_DIAGNOSIS->diag_desc_vn.'</td>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Từ trên '.formatPrice(data_get($limit,'amt')).' mỗi lần thăm khám</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1622,7 +1603,7 @@ class ClaimController extends Controller
             $sum_app_amt += $value->app_amt;
         }
             $html .=    '<tr>
-                            <th style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt" colspan="2">Tổng cộng:</th>
+                            <th style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt" >Tổng cộng:</th>
                             
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($sum_pre_amt).'</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">[[$time_pay]]</th>
@@ -1822,10 +1803,11 @@ class ClaimController extends Controller
         $user = Auth::User();
         $claim  = Claim::itemClaimReject()->findOrFail($id);
         $count_page = 0;
-
+        $claim_type = $claim->claim_type;
+        $per_approve_sign_replace = $claim_type == "P" ? getUserSignThumb() : getUserSign();
         //get file 
         if($export_letter->approve != null){
-            $data['content_letter'] = $export_letter->approve['data'];
+            $data['content_letter'] = str_replace('[[$per_approve_sign_replace]]',$per_approve_sign_replace,$export_letter->approve['data']);
             $data['content_payment'] =  isset($export_letter->approve['data_payment']) ? base64_decode($export_letter->approve['data_payment']) : null;
         }else{
             
@@ -1846,6 +1828,17 @@ class ClaimController extends Controller
         $file_name_letter =  md5(Str::random(11).time());
         $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
         $mpdf->WriteHTML( $data['content_letter']);
+        if($export_letter->letter_template->name == 'Letter Payment (GOP)'){
+            $mpdf->WriteHTML('
+                <div style="position: absolute; right: 5px; top: 0px;font-weight: bold; ">
+                    <img src="'.asset("images/header.jpg").'" alt="head">
+                </div>');
+            $mpdf->SetHTMLFooter('
+                    <div style="text-align: right; font-weight: bold;">
+                        <img src="'.asset("images/footer.png").'" alt="foot">
+                    </div>');
+        }
+        
         $pdf = $mpdf->Output('filename.pdf',\Mpdf\Output\Destination::STRING_RETURN);
         Storage::put('public/cache/' . $file_name_letter, $pdf);
         $path_file[] = storage_path("app/public/cache/$file_name_letter") ;
@@ -1892,13 +1885,72 @@ class ClaimController extends Controller
         return redirect('/admin/claim/'.$id)->with('status', __('message.update_claim'));
     }
 
+    public function downloadFinishFile(Request $request, $id){
+        $path_file = [] ;
+        $export_letter_id = $request->export_letter_id;
+        $export_letter = ExportLetter::findOrFail($export_letter_id);
+        $user = Auth::User();
+        $claim  = Claim::itemClaimReject()->findOrFail($id);
+        //get file 
+        if($export_letter->approve != null){
+            $data['content_letter'] = $export_letter->approve['data'];
+            $data['content_payment'] =  isset($export_letter->approve['data_payment']) ? base64_decode($export_letter->approve['data_payment']) : null;
+        }else{
+            
+            $data['content_letter'] = $export_letter->wait['data'];
+            $data['content_payment'] = $export_letter->letter_template->letter_payment ? $this->letterPayment($export_letter->letter_template->letter_payment , $id , $request->export_letter_id) : null;
+        }
+        $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
+        // save cache payment
+        if($data['content_payment']){
+            $file_name_payment =  md5(Str::random(12).time());
+            Storage::put('public/cache/' . $file_name_payment, $data['content_payment']);
+            $path_file[] = storage_path("app/public/cache/$file_name_payment") ;
+            $count_page = $mpdf->SetSourceFile(storage_path("app/public/cache/$file_name_payment"));
+            for ($i = 1; $i <= $count_page; $i++) {
+                $mpdf->AddPage();
+                $tplId = $mpdf->ImportPage($i);
+                $mpdf->UseTemplate($tplId);
+            }
+        }
+
+        //save CSR
+        $CsrFile = $claim->CsrFile->where('rpct_oid','CLSETTRPT01_CC')->first();
+        $url_csr = storage_path("../../vprod" . $CsrFile->path . $CsrFile->filename);
+        $count_page = $mpdf->SetSourceFile($url_csr);
+        for ($i = 1; $i <= $count_page; $i++) {
+            $mpdf->AddPage('L');
+            $tplId = $mpdf->ImportPage($i);
+            $mpdf->UseTemplate($tplId);
+        }
+
+        //save cache letter
+        // $file_name_letter =  md5(Str::random(11).time());
+        // $mpdf_lt = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
+        // $mpdf_lt->WriteHTML( $data['content_letter']);
+        // $pdf = $mpdf_lt->Output('filename.pdf',\Mpdf\Output\Destination::STRING_RETURN);
+        // Storage::put('public/cache/' . $file_name_letter, $pdf);
+        // $path_file[] = storage_path("app/public/cache/$file_name_letter") ;
+
+        // $count_page = $mpdf->SetSourceFile(storage_path("app/public/cache/$file_name_letter"));
+        // for ($i = 1; $i <= $count_page; $i++) {
+        //     $mpdf->AddPage();
+        //     $tplId = $mpdf->ImportPage($i);
+        //     $mpdf->UseTemplate($tplId);
+        // }
+        $HBS_CL_CLAIM = HBS_CL_CLAIM::IOPDiag()->findOrFail($claim->code_claim);
+        //$namefile = Str::slug("{$HBS_CL_CLAIM->Police->pocy_ref_no}_{$HBS_CL_CLAIM->memberNameCap}_CSR_{$claim->code_claim_show}", '-').".pdf";
+        $namefile = $HBS_CL_CLAIM->Police->pocy_no."-".strtoupper(Str::slug($HBS_CL_CLAIM->memberNameCap," "))."-CSR-".$claim->code_claim_show.".pdf";
+        $mpdf->Output($namefile,'D');
+    }
+
     public function sendCSRFile(Request $request, $id){
 
         $claim  = Claim::itemClaimReject()->findOrFail($id);
         $CsrFile = $claim->CsrFile->where('rpid_oid',$request->rpid_oid)->first();
-        $url_csr = storage_path("../../dlvnprod" . $CsrFile->path . $CsrFile->filename);
+        $url_csr = storage_path("../../vprod" . $CsrFile->path . $CsrFile->filename);
         $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
-        $pagecount = $mpdf->SetSourceFile(storage_path("../../dlvnprod" . $CsrFile->path . $CsrFile->filename));
+        $pagecount = $mpdf->SetSourceFile(storage_path("../../vprod" . $CsrFile->path . $CsrFile->filename));
         $file_name_cat =  md5(Str::random(14).time());
         $path_file_name_cat = storage_path("app/public/cache/$file_name_cat");
         $cm_run = "gs -sDEVICE=pdfwrite -dNOPAUSE -dQUIET -dBATCH -dFirstPage=1 -dLastPage={$pagecount} -sOutputFile={$path_file_name_cat} {$url_csr}" ;
@@ -1988,6 +2040,7 @@ class ClaimController extends Controller
         $rp = AjaxCommonController::sendPayment($request,$id);
         switch (data_get($rp,'code')) {
             case '00':
+                // HBS_CL_CLAIM::where('CLAM_OID',$claim->code_claim)->update(['IS_FREEZED'=>1]);
                 return redirect('/admin/claim/'.$id)->with('status', data_get($rp,'description'));
                 break;
             case '01':
@@ -2133,6 +2186,8 @@ class ClaimController extends Controller
     }
     public function requestManagerGOP(Request $request, $id){
         $claim = Claim::findOrFail($id);
+        $claim_type = $claim->claim_type;
+        
         $user = Auth::user();
         if($request->type_submit == 'request'){
             if($claim->url_file_sorted == null){
@@ -2190,8 +2245,59 @@ class ClaimController extends Controller
                 'apv_amt' =>  $HBS_CL_CLAIM->sumAppAmt,
                 'status' => 0,
             ]);
-            $approve_user_sign = getUserSignThumb($user->id);
+            //$approve_user_sign = getUserSignThumb($user->id);
+            $approve_user_sign = $user->name;
+            $per_approve_sign_replace = $claim_type == "P" ? getUserSignThumb() : getUserSign();
             $data_htm = $this->letter($letter_template_id ,  $claim->id ,$export_letter->id)['content'];
+            $user_create = User::findOrFail($claim->created_user);
+            $data_htm_apv = str_replace(['[[$per_approve_sign]]','[[$per_approve_sign_replace]]','[[$per_creater_sign]]'], [$approve_user_sign,$per_approve_sign_replace,$user_create->name], $data_htm);
+            
+            //sent Etalk 
+            $body = [
+                'user_email' => $user->email,
+                'issue_id' => $claim->barcode,
+                'text_note' => " Dear DLVN, \n PCV gửi là thông tin thanh toán và chi tiết theo như file đính kèm. \n Thanks,",
+    
+            ];
+            $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
+                $mpdf->WriteHTML('
+                <div style="position: absolute; right: 5px; top: 0px;font-weight: bold; ">
+                    <img src="'.asset("images/header.jpg").'" alt="head">
+                </div>');
+                $mpdf->SetHTMLFooter('
+                <div style="text-align: right; font-weight: bold;">
+                    <img src="'.asset("images/footer.png").'" alt="foot">
+                </div>');
+                $mpdf->WriteHTML($data_htm_apv);
+            $body['files'] = [
+                        [
+                            'name' => "letter_payment.pdf",
+                            "content" => base64_encode($mpdf->Output('filename.pdf',\Mpdf\Output\Destination::STRING_RETURN))
+                        ]
+                    ];
+            $diff = $HBS_CL_CLAIM->SumPresAmt - $HBS_CL_CLAIM->SumAppAmt ;
+            
+            if($HBS_CL_CLAIM->SumAppAmt == 0 ){
+                $body['status_id'] = config('constants.status_mantic_value.declined');
+            }elseif($diff == 0){
+                $body['status_id'] = config('constants.status_mantic_value.accepted');
+            }else {
+                $body['status_id'] = config('constants.status_mantic_value.partiallyaccepted');
+            }
+
+            try {
+                $res = PostApiMantic('api/rest/plugins/apimanagement/issues/add_note_reply_letter/files', $body);
+                $res = json_decode($res->getBody(),true);
+            } catch (Exception $e) {
+    
+                $request->session()->flash(
+                    'errorStatus', 
+                    generateLogMsg($e)
+                );
+                return redirect('/admin/claim/'.$id)->withInput();
+            }
+
+            //updata db
             $export_letter->update(['wait' => [
                 'user' => $claim->created_user,
                 'created_at' =>  Carbon::now()->toDateTimeString(),
@@ -2201,9 +2307,25 @@ class ClaimController extends Controller
                 'approve' =>[
                     'user' => $user->id,
                     'created_at' => Carbon::now()->toDateTimeString(),
-                    'data' => str_replace('[[$per_approve_sign]]', $approve_user_sign, $data_htm),
+                    'data' => $data_htm_apv,
                 ]
             ]);
+
+            // notifi admin claim
+            $claim->report_admin()->updateOrCreate(['claim_id' => $claim->id]
+                ,['REQUEST_SEND' => 1]);
+            $to_admin_claim = User::whereHas("roles", function($q){ $q->where("name", "AdminClaim"); })->get()->pluck('id')->toArray();
+            if (!empty($to_admin_claim)) {
+                foreach ($to_admin_claim as $key => $value) {
+                    $request2 = new Request([
+                        'user' => $value,
+                        'content' => 'Claim '.$claim->code_claim_show.' Đã Hoàn tất Vui lòng kiểm tra lại thông tin tại : 
+                        <a href="'.route('claim.show', $claim->id).'">'.route('claim.show', $claim->id).'</a>'
+                    ]);
+                    $send_mes = new SendMessageController();
+                    $send_mes->sendMessage($request2);
+                }
+            }
             
             
             if (!empty($to_user)) {
@@ -2250,7 +2372,9 @@ class ClaimController extends Controller
         $export_letter = ExportLetter::findOrFail($id);
         $user = Auth::User();
         $claim  = Claim::itemClaimReject()->findOrFail($claim_id);
-        
+        $claim_type = $claim->claim_type;
+        $per_approve_sign_replace = $claim_type == "P" ? getUserSignThumb() : getUserSign();
+
         $HBS_CL_CLAIM = HBS_CL_CLAIM::IOPDiag()->findOrFail($claim->code_claim);
         $diag_code = $HBS_CL_CLAIM->HBS_CL_LINE->pluck('diag_oid')->unique()->toArray();
         $namefile = Str::slug("{$export_letter->letter_template->name}_{$HBS_CL_CLAIM->memberNameCap}", '-');
@@ -2265,8 +2389,7 @@ class ClaimController extends Controller
             'diag_code' => $diag_code,
             'id_claim' => $claim->code_claim
         ]);
-        $AjaxValidClaim = new AjaxCommonController();
-        $benefit = $AjaxValidClaim->AjaxValidClaim($request2);
+
         
         if($match_form_gop){
             $template = 'templateEmail.sendProviderTemplate_input';
@@ -2298,7 +2421,7 @@ class ClaimController extends Controller
             $mpdf->WriteHTML('<div style="position: absolute; top: 9;
                 right:5"><barcode code="'.$claim->barcode.'" type="C93"  height="1.3" />
                 <div style="text-align: center">'.$claim->barcode.'</div></div>');
-            $mpdf->WriteHTML(data_get($export_letter->approve, 'data'));
+            $mpdf->WriteHTML(str_replace("[[$per_approve_sign_replace]]",$per_approve_sign_replace,data_get($export_letter->approve, 'data')));
 
         }else{
             $template = 'templateEmail.sendProviderTemplate_output';
@@ -2312,7 +2435,7 @@ class ClaimController extends Controller
             <div style="text-align: right; font-weight: bold;">
                 <img src="'.asset("images/footer.png").'" alt="foot">
             </div>');
-            $mpdf->WriteHTML(data_get($export_letter->approve, 'data'));
+            $mpdf->WriteHTML(str_replace("[[$per_approve_sign_replace]]",$per_approve_sign_replace,data_get($export_letter->approve, 'data')));
         }
         
         $old_msg = "";
@@ -2333,7 +2456,6 @@ class ClaimController extends Controller
         $data['incurDateTo'] = $incurDateTo->format('d-m-Y');
         $data['incurDateFrom'] = $incurDateFrom->format('d-m-Y');
         $data['diffIncur'] = $diffIncur;
-        $data['benefit'] = $benefit;
         $data['old_msg'] = $old_msg;
         $data['HBS_CL_CLAIM'] = $HBS_CL_CLAIM;
         $data['Diagnosis'] = data_get($claim->hospital_request,'diagnosis',null) ?  data_get($claim->hospital_request,'diagnosis') : $HBS_CL_CLAIM->FirstLine->RT_DIAGNOSIS->diag_desc_vn;
@@ -2342,6 +2464,7 @@ class ClaimController extends Controller
         $data['attachment']['filetype'] = "application/pdf";
         $data['email_reply'] = $user->email;
         $email_to = explode(",", $request->email_to);
+        $email_to = array_diff( $email_to, ['admin@pacificcross.com.vn'] );
         sendEmailProvider($user, $email_to, 'provider', $subject, $data,$template);
         return redirect('/admin/claim/'.$claim_id)->with('status', 'Đã gửi thư cho provider thành công');
     }
@@ -2352,5 +2475,58 @@ class ClaimController extends Controller
         $claim->jetcase = $request->jetcase ? $request->jetcase : 0;
         $claim->save();
         return redirect('/admin/claim/'.$id)->with('status', 'Đã cập nhật thành công');
+    }
+
+    public function unfreezed(Request $request, $id){
+        $claim = Claim::findOrFail($id);
+        $user = Auth::User();
+        HBS_CL_CLAIM::where('CLAM_OID',$claim->code_claim)->update(['IS_FREEZED'=>0]);
+        $claim->log_unfreezed()->create([
+            'cl_no' => $claim->code_claim_show,
+            'reason' => $request->reason,
+            'desc' => $request->desc,
+            'created_user' => $user->id,
+            'updated_user' => $user->id,
+        ]);
+        return redirect('/admin/claim/'.$id)->with('status', 'Đã mở khóa thành công');
+    }
+
+    public function closeClaim(Request $request, $id){
+        $user = Auth::User();
+        $claim = Claim::findOrFail($id);
+        $HBS_CL_CLAIM = HBS_CL_CLAIM::IOPDiag()->findOrFail($claim->code_claim);
+        $count_orther_close = $HBS_CL_CLAIM->HBS_CL_LINE->where('scma_oid_cl_line_status',"!=",'CL_LINE_STATUS_CL')->count();
+        if($count_orther_close > 0){
+            return redirect('/admin/claim/'.$id)->with('errorStatus', 'Vui lòng kiểm tra HBS tất cả claim line phải chuyển sang trang thái Close ');
+        }
+
+        $body = [
+            'user_email' => $user->email,
+            'issue_id' => $claim->barcode,
+            'text_note' => '.',
+            'status_id' =>  config('constants.status_mantic_value.closed'),
+        ];
+        try {
+            $res = PostApiMantic('api/rest/plugins/apimanagement/issues/add_note_reply_letter/files', $body);
+            $res = json_decode($res->getBody(),true);
+        } catch (Exception $e) {
+
+            $request->session()->flash(
+                'errorStatus', 
+                generateLogMsg($e)
+            );
+            return redirect('/admin/claim/'.$id)->withInput();
+        }
+
+        
+        HBS_CL_CLAIM::where('CLAM_OID',$claim->code_claim)->update(['IS_FREEZED'=>1]);
+        $claim->log_unfreezed()->create([
+            'cl_no' => $claim->code_claim_show,
+            'reason' => 'Close',
+            'desc' => $request->desc,
+            'created_user' => $user->id,
+            'updated_user' => $user->id,
+        ]);
+        return redirect('/admin/claim/'.$id)->with('status', 'Đã Close Claim thành công');
     }
 }

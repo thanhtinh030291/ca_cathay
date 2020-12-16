@@ -12,7 +12,7 @@ class HBS_CL_CLAIM extends  BaseModelDB2
 
     public function HBS_CL_LINE()
     {
-        return $this->hasMany('App\HBS_CL_LINE', 'clam_oid', 'clam_oid')->where('rev_date',null);
+        return $this->hasMany('App\HBS_CL_LINE', 'clam_oid', 'clam_oid')->whereNull('rev_date');
     }
 
     public function getMemberAttribute()
@@ -51,6 +51,20 @@ class HBS_CL_CLAIM extends  BaseModelDB2
         }
         return null;
     }
+
+    public function getBrokerAttribute()
+    {
+        return $this->police->HBS_CM_BROKER;
+        
+    }
+
+    public function getFrontlinerAttribute()
+    {
+        return $this->police->HBS_CM_BROKER_FRONTLINER;
+        
+    }
+
+    
 
     public function getFirstLineAttribute(){
         return $this->HBS_CL_LINE->first();
@@ -132,6 +146,12 @@ class HBS_CL_CLAIM extends  BaseModelDB2
         $clLines = $this->HBS_CL_LINE->toArray();
         $sum = array_sum(array_column($clLines,'app_amt'));
         return round($sum);
+    }
+
+    public function getInvNoAttribute(){
+        $clLines = $this->HBS_CL_LINE->toArray();
+        $kq = implode(",",array_column($clLines,'inv_no'));
+        return $kq;
     }
     
     //show RT_DIAGNOSIS

@@ -20,24 +20,19 @@ class HBS_MR_MEMBER extends  BaseModelDB2
     }
     public function getClaimLineAttribute()
     {
-        $memb_ref_no = $this->memb_ref_no;
-        $HBS_MR_MEMBER = HBS_MR_MEMBER::where('memb_ref_no',$memb_ref_no)->pluck('memb_oid')->toArray();
-        $CL_LINE = HBS_CL_LINE::whereIn('memb_oid',$HBS_MR_MEMBER)->where('REV_DATE', null)->get();
+        $CL_LINE = HBS_CL_LINE::where('memb_oid',$this->memb_oid)->where('REV_DATE', null)->get();
         return $CL_LINE;
     }
     public function getMrMemberEventAttribute()
     {
-        $memb_ref_no = $this->memb_ref_no;
-        $HBS_MR_MEMBER = HBS_MR_MEMBER::where('memb_ref_no',$memb_ref_no)->pluck('memb_oid')->toArray();
-        $MR_MBR_EVENT = HBS_MR_MEMBER_EVENT::whereIn('memb_oid',$HBS_MR_MEMBER)->get();
+        $MR_MBR_EVENT = HBS_MR_MEMBER_EVENT::where('memb_oid',$this->memb_oid)->get();
         return $MR_MBR_EVENT;
     }
 
     public function getClaimMemberEventAttribute()
     {
-        $memb_ref_no = $this->memb_ref_no;
-        $HBS_MR_MEMBER = HBS_MR_MEMBER::where('memb_ref_no',$memb_ref_no)->pluck('memb_oid')->toArray();
-        $CL_MBR_EVENT = HBS_CL_MBR_EVENT::whereIn('memb_oid',$HBS_MR_MEMBER)->get();
+
+        $CL_MBR_EVENT = HBS_CL_MBR_EVENT::where('memb_oid',$this->memb_oid)->get();
         return $CL_MBR_EVENT;
     }
     
@@ -79,11 +74,12 @@ class HBS_MR_MEMBER extends  BaseModelDB2
     {
         //return [];
         $plan = [];
-        $DLVN_MEMBER = DLVN_MEMBER::where('MEMB_REF_NO' , $this->memb_ref_no)->orderBy('pocy_eff_date', 'desc')->get();
-        foreach ($DLVN_MEMBER as $key => $value) {
-            $plan_merge = array_map('trim', array_filter($value->only(['ip_plan','op_plan','dt_plan'])));
-            $plan[] = implode(", ", $plan_merge) ." - ".Carbon::parse($value->pocy_eff_date)->format('d/m/Y');
+        $DLVN_MEMBER = self::where('MBR_NO' , $this->mbr_no)->get();
+        foreach($this->MR_MEMBER_PLAN as $key2 => $value2){
+            $plan[] =  $value2->MR_POLICY_PLAN->pocy_plan_desc ." - ".Carbon::parse($value2->MR_POLICY_PLAN->crt_date)->format('Y');
         }
+            
+        
         return $plan;
     }
 
@@ -96,22 +92,23 @@ class HBS_MR_MEMBER extends  BaseModelDB2
             'headers' => $headers
         ]);
         
-        try {
-            $request = $client->get(config('constants.url_query_online').$this->memb_ref_no);
-            $response = $request->getBody()->getContents();
-            $response = json_decode($response,true);
-            if(data_get($response, 'response_msg.msg_code') == "DLVN0"){
-                $html = "";
-                foreach(data_get($response, 'client_info', []) as $key => $value){
-                    $html .= "<span class = 'ml-2'>" . data_get($value ,'sPlanID') . ": ".  data_get($value ,'sStatus')  . "</span>";
-                }
-                return $html;
-            }else{
-                return "";
-            }
-        } catch ( Exception $e) {
-            return "";
-        }
+        // try {
+        //     $request = $client->get(config('constants.url_query_online').$this->memb_ref_no);
+        //     $response = $request->getBody()->getContents();
+        //     $response = json_decode($response,true);
+        //     if(data_get($response, 'response_msg.msg_code') == "DLVN0"){
+        //         $html = "";
+        //         foreach(data_get($response, 'client_info', []) as $key => $value){
+        //             $html .= "<span class = 'ml-2'>" . data_get($value ,'sPlanID') . ": ".  data_get($value ,'sStatus')  . "</span>";
+        //         }
+        //         return $html;
+        //     }else{
+        //         return "";
+        //     }
+        // } catch ( Exception $e) {
+        //     return "";
+        // }
+        return "";
     }
 
     public function getMessageComfirmConractAttribute(){
@@ -132,7 +129,6 @@ class HBS_MR_MEMBER extends  BaseModelDB2
                 $all_lapse_process_date = collect($response['all_lapse_process_date']);
                 $all_lapse_effective_date = collect($response['all_lapse_effective_date']);
                 $all_reinstate_date = collect($response['all_reinstate_date']);
-                //dd($client_info);
                 $map_ql = $client_info->map(function ($item, $key) {
                     $t = "";
                     switch (substr(trim(data_get($item,'sPlanID')), 3,1)) {
@@ -171,10 +167,11 @@ class HBS_MR_MEMBER extends  BaseModelDB2
         } catch ( Exception $e) {
             return "";
         }
+        
     }
 
     public function getQueryOnlineAttribute(){
-        //return " ";
+        
         $headers = [
             'Content-Type' => 'application/json',
         ];

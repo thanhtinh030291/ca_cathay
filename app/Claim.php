@@ -22,11 +22,20 @@ class Claim extends BaseModel
         return $this->hasOne('App\InboxEmail', 'claim_id')->orderBy('id', 'desc');
     }
 
+    public function report_admin()
+    {
+        return $this->hasOne('App\ReportAdmin', 'claim_id')->orderBy('id', 'desc');
+    }
+
     public function finish_and_pay()
     {
         return $this->hasOne('App\FinishAndPay', 'claim_id')->orderBy('id', 'desc');
     }
-
+    
+    public function log_unfreezed()
+    {
+        return $this->hasMany('App\LogUnfreezed', 'claim_id')->orderBy('id', 'desc');
+    }
     public function export_letter()
     {
         return $this->hasMany('App\ExportLetter', 'claim_id')->orderBy('id', 'desc');
