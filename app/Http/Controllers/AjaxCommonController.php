@@ -33,7 +33,7 @@ class AjaxCommonController extends Controller
         $id_claim = $request->id_claim;
         $claim = HBS_CL_CLAIM::IOPDiag()->findOrFail($id_claim);
         $arr_max_bf = ["vis_yr","vis_day","amt_vis","amt_yr","amt_dis_yr","amt_life","deduct_amt","copay_pct","day_dis_yr","amt_day","deduct_amt_vis","amt_dis_vis","amt_dis_life"];
-    //check min max Type
+        //check min max Type
         $plan_all_limit = $claim->FirstLine->MR_POLICY_PLAN->PD_PLAN->PD_PLAN_LIMIT;
         $plant_type_limits = $plan_all_limit->whereIn('limit_type',['T','CT'])->where('PD_BEN_HEAD.0.scma_oid_ben_type', 'BENEFIT_TYPE_'.$TYPE);
         $memb_ref_no = $claim->member->memb_ref_no;
@@ -216,8 +216,8 @@ class AjaxCommonController extends Controller
             }
 
         }
-    //end check type
-    //check min max Head
+        //end check type
+        //check min max Head
         $plan_all_limit = $claim->FirstLine->MR_POLICY_PLAN->PD_PLAN->PD_PLAN_LIMIT;
         $plant_type_limits = $plan_all_limit->whereIn('limit_type',['H','CH'])->where('PD_BEN_HEAD.0.scma_oid_ben_type', 'BENEFIT_TYPE_'.$TYPE);
         foreach ($arr_max_bf as $max_bf) {
@@ -462,7 +462,7 @@ class AjaxCommonController extends Controller
             }
             
         }
-    //end check head
+        //end check head
         foreach ($arr_max_bf as $max_bf){
             switch ($max_bf) {
                 case 'vis_yr':
@@ -647,7 +647,7 @@ class AjaxCommonController extends Controller
         return $message;
         
     }
-    //ajax load ID claim auto complate 
+        //ajax load ID claim auto complate 
     public function dataAjaxHBSClaim(Request $request)
     {
         $data = [];

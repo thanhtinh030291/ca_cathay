@@ -180,11 +180,11 @@ class ClaimController extends Controller
     {
         $claim_type = $request->claim_type;
         //validate
-        $issue = MANTIS_CUSTOM_FIELD_STRING::where('value',(int)$request->barcode)->where('field_id',14)->get();
-        if($issue->count() != 1){
-            $request->session()->flash('errorStatus', 'Phải tồn tại duy nhất 1 Common ID trên Health Etalk ');
-            return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
-        }
+        // $issue = MANTIS_CUSTOM_FIELD_STRING::where('value',(int)$request->barcode)->where('field_id',14)->get();
+        // if($issue->count() != 1){
+        //     $request->session()->flash('errorStatus', 'Phải tồn tại duy nhất 1 Common ID trên Health Etalk ');
+        //     return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
+        // }
         
         //end valid
         if ($request->_url_file_sorted) {
