@@ -1939,7 +1939,7 @@ class ClaimController extends Controller
 
         //save CSR
         $CsrFile = $claim->CsrFile->where('rpct_oid','CLSETTRPT01_CC')->first();
-        $url_csr = storage_path("../../cathayprod" . $CsrFile->path . $CsrFile->filename);
+        $url_csr = storage_path("../../". config('constants.mount_disk_hbs') . $CsrFile->path . $CsrFile->filename);
         $count_page = $mpdf->SetSourceFile($url_csr);
         for ($i = 1; $i <= $count_page; $i++) {
             $mpdf->AddPage('L');
@@ -1971,9 +1971,9 @@ class ClaimController extends Controller
 
         $claim  = Claim::itemClaimReject()->findOrFail($id);
         $CsrFile = $claim->CsrFile->where('rpid_oid',$request->rpid_oid)->first();
-        $url_csr = storage_path("../../cathayprod" . $CsrFile->path . $CsrFile->filename);
+        $url_csr = storage_path("../../". config('constants.mount_disk_hbs')  . $CsrFile->path . $CsrFile->filename);
         $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
-        $pagecount = $mpdf->SetSourceFile(storage_path("../../cathayprod" . $CsrFile->path . $CsrFile->filename));
+        $pagecount = $mpdf->SetSourceFile(storage_path("../../". config('constants.mount_disk_hbs') . $CsrFile->path . $CsrFile->filename));
         $file_name_cat =  md5(Str::random(14).time());
         $path_file_name_cat = storage_path("app/public/cache/$file_name_cat");
         $cm_run = "gs -sDEVICE=pdfwrite -dNOPAUSE -dQUIET -dBATCH -dFirstPage=1 -dLastPage={$pagecount} -sOutputFile={$path_file_name_cat} {$url_csr}" ;

@@ -17,6 +17,8 @@ return[
     'PUSHER_APP_ID' => env('PUSHER_APP_ID'),
     'PUSHER_APP_CLUSTER' => env('PUSHER_APP_CLUSTER'),
     'VAPID_PUBLIC_KEY' => env('VAPID_PUBLIC_KEY'),
+    'mount_disk_hbs' => 'cathayprod',
+    'mount_dlvn' => "http://192.168.0.235/cathayprod/",
     
     'attachUpload'   => '/public/attachEmail/',
     
@@ -134,7 +136,6 @@ return[
     //end test
     'grant_type' => 'client_credentials',
     'url_query_online' => 'https://pcvwebservice.pacificcross.com.vn/bluecross/query_rest.php?id=',
-    'mount_dlvn' => "http://192.168.0.235/dlvnprod/",
     'claim_result' => [
         1 => 'FULLY PAID' ,
         2 => 'PARTIALLY PAID',
