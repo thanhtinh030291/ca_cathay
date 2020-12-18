@@ -40,7 +40,7 @@ $totalAmount = 0;
                             <div class="card-body row">
                                 <div class="col-md-7">
                                     
-                                    <h5 class="card-title">Request Letter @if($data->jetcase == 1) <span class="ml-5 button_flight">JETCASE</span> @endif</h5>
+                                    <h5 class="card-title">Request Letter</h5>
                                     <p class="card-text"></p>
                                     {{ Form::open(array('url' => '/admin/requestLetter', 'method' => 'POST')) }}
                                         {{ Form::hidden('claim_id', $data->id ) }}
@@ -67,7 +67,7 @@ $totalAmount = 0;
                                         
                                         {{ Form::open(array('url' => route('claimWordSheets.store'))) }}
                                         {{ Form::hidden('claim_id', $data->id ) }}
-                                        {{ Form::hidden('mem_ref_no', $data->clClaim->member->memb_ref_no ) }}
+                                        {{ Form::hidden('mem_ref_no', $data->clClaim->member->mbr_no ) }}
                                         <button class="btn btn-info" type="submit" value="save">Run</button> 
                                         {{ Form::close() }}
                                     @endif
@@ -75,27 +75,10 @@ $totalAmount = 0;
                                     {{ Form::label('CSR_File', 'CSR File ', array('class' => 'labelas')) }}<br>
                                     {!! Form::button('CSR File', ['data-toggle' => "modal" ,  'data-target' => "#csrModal", 'type' => 'button', 'class' => ' btn btn-info' ]) !!}<br>
 
-                                    {{ Form::label('confirm_contract_status', 'Confirm Contract Status ', array('class' => 'labelas')) }}<br>
-                                    {!! Form::button('confirm', ['data-toggle' => "modal" ,  'data-target' => "#confirmContractModal", 'type' => 'button', 'class' => ' btn btn-info' ]) !!}<br>
-                                    
-                                    {{ Form::label('jet_case', 'Set Claim Is JETCASE: ', array('class' => 'labelas')) }}<br>
-                                    {{ Form::open(array('url' => '/admin/claim/setJetcase/'.$data->id, 'method' => 'POST')) }}
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" class="custom-control-input" id="customRadio" name="jetcase" value="0" checked >
-                                            <label class="custom-control-label" for="customRadio">No</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" class="custom-control-input" id="customRadio2" name="jetcase" value="1" @if($data->jetcase == 1 ) checked @endif>
-                                            <label class="custom-control-label" for="customRadio2">YES</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <button class="btn btn-info" type="submit" value="save">Save</button> 
-                                        </div>
-                                    {{ Form::close() }}
                                     {{-- payment request  --}}
                                     {{ Form::label('Payment_Request', 'Payment Request', array('class' => 'labelas')) }}
-                                    <p class="text-danger">Yêu cầu thanh toán chỉ hiển thị khi Issue trên Health Etalk đạt trạng thái Finish! </p>
-                                    @if($can_pay_rq == 'success')
+                                    <p class="text-danger">Yêu cầu thanh toán chỉ hiển thị khi Được approved! </p>
+                                    @if($can_pay_rq == true)
                                             {!! Form::button('Yêu Cầu Finance Thanh Toán', ['data-toggle' => "modal" ,  
                                                 'data-target' => "#requetPaymentModal",
                                                 'type' => 'button', 
@@ -111,7 +94,7 @@ $totalAmount = 0;
                                         <input id="url_file_sorted" type="file" name="_url_file_sorted[]" >
                                     </div>
                                     <div class="mt-2" >
-                                        <button type="submit" class="btn btn-primary " > {{__('message.save')}}</button> 
+                                        <button type="submit" class="btn btn-primary " > {{__('message.save')}}</button>
                                         <button type="button" onclick="upload_summary()" class="btn btn-primary m-2">Send to summary Etalk</button>
                                         {!! Form::button('Delete pages', ['data-toggle' => "modal" ,  
                                                 'data-target' => "#deletePagesModal",
@@ -123,7 +106,7 @@ $totalAmount = 0;
                                     <!-- End file image -->
                                     {{ Form::close() }}
                                     
-                                </div>
+                                </div> 
                             </div>
                         </div>
                     </div>
@@ -138,15 +121,12 @@ $totalAmount = 0;
                             {{ Form::label('type',  'Claim Code', array('class' => 'col-md-4')) }}
                             {{ Form::label('type', $data->code_claim_show , array('class' => 'col-md-8')) }}
 
-                            {{ Form::label('type',  'Barcode', array('class' => 'col-md-4')) }}
+                            {{ Form::label('type',  'Claim Ref No', array('class' => 'col-md-4')) }}
                             {{ Form::label('type', $data->barcode , array('class' => 'col-md-8')) }}
 
                             {{ Form::label('type',  'Etalk Link', array('class' => 'col-md-4')) }}
-                            <a class="btn btn-primary col-md-8 " target="_blank" href="{{config('constants.url_mantic').'view.php?id='.$data->barcode }}">Link</a>
-
-                            {{ Form::label('type',  'HBS Link', array('class' => 'col-md-4')) }}
-                            <a class="btn btn-primary col-md-4 mt-1"  href="ie:{{config('constants.url_hbs')}}/hbs/cl/ClGeneral.do?formAction=enquiry&id=clam{{$data->code_claim}}">View</a>
-                        <a class="btn btn-primary col-md-4 ml- 1 mt-1"  href="ie:{{config('constants.url_hbs')}}/hbs/cl/ClClaim.do?formAction=barcode&amp;barCodeId={{$data->barcode}}&amp;product=MD&amp;policyRefNo={{$pocy_ref_no}}&amp;memberRefNo={{$memb_ref_no}}">Edit</a>
+                            <a class="btn btn-primary col-md-8 " target="_blank" href="{{config('constants.url_mantic').'view.php?id='.$data->mantis_id }}">Link</a>
+                            
                             
                             {{ Form::label('type',  __('message.account_create'), array('class' => 'col-md-4')) }}
                             {{ Form::label('type', $admin_list[$data->updated_user] ." ". $data->created_at, array('class' => 'col-md-8')) }} 
@@ -328,9 +308,14 @@ $totalAmount = 0;
                                         {{$item->wait['created_at']}}
                                         @if($item->created_user == $user->id)
                                             {{ Form::open(array('url' => '/admin/claim/sendSortedFile/'.$data->id, 'method'=>'post', 'files' => true))}}
-                                            {{ Form::hidden('export_letter_id', $item->id ) }}
-                                            {{ Form::hidden('letter_template_id', $item->letter_template->id ) }}
-                                            {!! Form::button('<i class="fa fa-repeat"></i> Lưu vào tệp đã sắp sếp', ['type' => 'submit', 'class' => 'btn btn-info btn-xs p-1']) !!}
+                                                {{ Form::hidden('export_letter_id', $item->id ) }}
+                                                {{ Form::hidden('letter_template_id', $item->letter_template->id ) }}
+                                                {!! Form::button('<i class="fa fa-repeat"></i> Lưu vào tệp đã sắp sếp', ['type' => 'submit', 'class' => 'btn btn-info btn-xs p-1']) !!}
+                                            {!! Form::close() !!}
+                                            {{ Form::open(array('url' => '/admin/claim/downloadFinishFile/'.$data->id, 'method'=>'post', 'files' => true))}}
+                                                {{ Form::hidden('export_letter_id', $item->id ) }}
+                                                {{ Form::hidden('letter_template_id', $item->letter_template->id ) }}
+                                                {!! Form::button('<i class="fa fa-repeat"></i> Download attach for CS', ['type' => 'submit', 'class' => 'btn btn-info btn-xs p-1']) !!}
                                             {!! Form::close() !!}
                                         @endif
                                 @endif
@@ -467,12 +452,8 @@ $totalAmount = 0;
 {{-- Modal CSR File--}}
 @include('claimManagement.csrModal')
 
-
 {{-- deletePagesModal--}}
 @include('claimManagement.deletePagesModal')
-
-{{-- confirmContractModal --}}
-@include('claimManagement.confirmContractModal')
 
 @endsection
 

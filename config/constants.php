@@ -55,14 +55,20 @@ return[
         'HSP' => 'Các chi phí nội trú khác, Điều trị trước và sau khi nằm viện, Phí khám bệnh hằng ngày của Bác sĩ/Bác sĩ chuyên khoa',
         'HVIS' => 'Các chi phí nội trú khác, Điều trị trước và sau khi nằm viện, Phí khám bệnh hằng ngày của Bác sĩ/Bác sĩ chuyên khoa',
         'IMIS' => 'Các chi phí nội trú khác',
+        'IMIS0' => 'Các chi phí nội trú khác',
         'PORX' => 'Điều trị sau khi nằm viện',
         'POSH' => 'Điều trị trước khi nằm viện',
-
+        'OESUR' => 'Chi phí bác sĩ phẫu thuật',
+        'OEOPR' => 'Chi phí phòng phẫu thuật',
+        'OEAES' => "Chi phí gây mê/gây tê",
+        'OEAES' => "OEMIS",
+        'OERB' => 'Chi phí giường và phòng',
         'RB' => 'Chi phí giường và phòng',
-
+        'RB0' => 'Chi phí giường và phòng',
         'EXTB' => 'Giường cho người thân',
 
         'ICU' => 'Khoa chăm sóc đặc biệt',
+        'ICU0' => 'Khoa chăm sóc đặc biệt',
         'CCU' => 'Khoa chăm sóc đặc biệt',
 
         'HNUR' => 'Điều dưỡng tại nhà',
@@ -79,6 +85,11 @@ return[
         'RADIA'  => 'Điều trị ung thư',
 
         'TDAM' => 'Điều trị tổn thương răng do tai nạn',
+        'MCAR' => 'Điều trị biến chứng thai sản',
+        'MAT' => 'Khám thai',
+        'DELI' => 'Sinh con sinh thường',
+        'CXP' => 'Sinh con sinh mổ',
+        'NBC' => 'Chăm sóc trẻ sơ sinh',
         
     ],
     'content_op' => [
@@ -89,7 +100,10 @@ return[
         'XRAY' => 'Quyền lợi ngoại trú',
         'PHYS' => 'Quyền lợi ngoại trú',
         'CHIR' => 'Quyền lợi ngoại trú',
-
+        'SUR' => ' Chi phí Bác sĩ phẫu thuật',
+        'OPR' => 'Chi phí phòng phẫu thuật',
+        'ANES' => 'Chi phí gây mê/ gây tê',
+        'OMIS' => 'Các chi phí ngoại trú khác',
         'ACUP' => 'Y hoc thay thế',
         'BSET' => 'Y hoc thay thế',
         'CGP' => 'Y hoc thay thế',

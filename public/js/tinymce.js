@@ -290,7 +290,7 @@ var config2 = {
             text: "Example",
             icon: false,
             onclick: function() {
-                editor.insertContent("<br>Chi phí &nbsp;<b class = 'text-danger'>[##nameItem##]</b>&nbsp; từ ngày &nbsp;<b class = 'text-danger'>[##Date##]</b>&nbsp; đến &nbsp;<b class = 'text-danger'>[##Date##]</b>&nbsp; là &nbsp;<b class = 'text-danger'>[##amountItem##]</b>&nbsp; , tuy nhiên công ty Bảo hiểm Dai-ichi Life Việt Nam từ chối chi trả &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; đồng do vượt mức quyền lợi tối đa( &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; đồng/ ngày x &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; = &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; đồng).");
+                editor.insertContent("<br>Chi phí &nbsp;<b class = 'text-danger'>[##nameItem##]</b>&nbsp; từ ngày &nbsp;<b class = 'text-danger'>[##Date##]</b>&nbsp; đến &nbsp;<b class = 'text-danger'>[##Date##]</b>&nbsp; là &nbsp;<b class = 'text-danger'>[##amountItem##]</b>&nbsp; , tuy nhiên công ty Bảo hiểm CATHAY từ chối chi trả &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; đồng do vượt mức quyền lợi tối đa( &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; đồng/ ngày x &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; = &nbsp;<b class = 'text-danger'>[##Text##]</b>&nbsp; đồng).");
             }
         });
     }

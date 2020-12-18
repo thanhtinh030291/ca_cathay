@@ -616,7 +616,7 @@ function datepayment(){
             $now = $now->addDays(1);
             break;
     }
-    return $now->format("d/m/Y");
+    return "Ngày ".$now->day." Tháng ".$now->month." Năm ".$now->year;
 }
 function notifi_system($content, $arrUserID = []){
     $user = App\User::findOrFail(1);

@@ -378,7 +378,6 @@ class ClaimController extends Controller
         $list_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('text', 'id') : [];
         $selected_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('id') : null;
         $fromEmail = $claim->inbox_email ? $claim->inbox_email->from . "," . implode(",", $claim->inbox_email->to) : "";
-
         $reject_code = collect($claim->RejectCode)->flatten(1)->values()->all();
         $compact = compact(['data', 'dataImage', 'items', 'admin_list', 'listReasonReject', 
         'listLetterTemplate' , 'list_status_ad', 'user', 'payment_history', 'approve_amt','tranfer_amt','present_amt',
@@ -710,28 +709,24 @@ class ClaimController extends Controller
                 //     $to_user = User::whereHas("roles", function($q){ $q->where("name", "QC"); })->get()->pluck('id')->toArray();
                 //     $to_user = [Arr::random($to_user)];
                 // }
-                if(  $user->hasRole('Claim Independent') && removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 20000000){
-                    $to_user = [$user_create->supper];
-                }
-                
-                if( $user->hasRole('Supper') &&  removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 50000000){
+                if(  $user->hasRole('Claim Independent') && removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 15000000){
                     $to_user = [$user_create->manager];
                 }
-
+                
                 if( $user->hasRole('Manager') &&  removeFormatPrice(data_get($export_letter->info, 'approve_amt')) > 100000000){
                     $to_user = [$user_create->header];
                 }
 
                 // Claim Independent
-                if($claim->jetcase != 1 && $user_create->hasRole('Claim Independent') && $user->hasRole('QC')){
-                    $to_user = [$user_create->supper];
-                }
+                // if($claim->jetcase != 1 && $user_create->hasRole('Claim Independent') && $user->hasRole('QC')){
+                //     $to_user = [$user_create->supper];
+                // }
                 
                 //jetcase
-                if($claim->jetcase == 1 && ($user->hasRole('Claim Independent') || $user->hasRole('Lead') || $user->hasRole('Claim') )){
-                    $to_user = User::whereHas("roles", function($q){ $q->where("name", "QC"); })->get()->pluck('id')->toArray();
-                    $to_user = [Arr::random($to_user)];
-                }
+                // if($claim->jetcase == 1 && ($user->hasRole('Claim Independent') || $user->hasRole('Lead') || $user->hasRole('Claim') )){
+                //     $to_user = User::whereHas("roles", function($q){ $q->where("name", "QC"); })->get()->pluck('id')->toArray();
+                //     $to_user = [Arr::random($to_user)];
+                // }
                 
                 // Claim GOP
                 
@@ -1394,6 +1389,7 @@ class ClaimController extends Controller
         $incurDateFrom = data_get($claim->hospital_request,'incur_from',null) ?  data_get($claim->hospital_request,'incur_from') : $incurDateFrom->format('d/m/Y') ;
         $Diagnosis = data_get($claim->hospital_request,'diagnosis',null) ?  data_get($claim->hospital_request,'diagnosis') : $HBS_CL_CLAIM->FirstLine->RT_DIAGNOSIS->diag_desc_vn;
         $diffIncur_extb = data_get($claim->hospital_request,'incur_time_extb',null) ?  "/".data_get($claim->hospital_request,'incur_time_extb') : "" ;
+        $deniedAmt = $HBS_CL_CLAIM->sumPresAmt - (int)$sumAppAmt;
         $content = $letter->template;
         $content = str_replace('[[$ProvPstAmt]]', formatPrice(data_get($claim->hospital_request,'prov_gop_pres_amt')), $content);
         $content = str_replace('[[$ProDeniedAmt]]', formatPrice($sumAmountReject), $content);
@@ -1430,9 +1426,25 @@ class ClaimController extends Controller
         $content = str_replace('[[$nowDay]]', Carbon::now()->toDateString(), $content);
         $content = str_replace('[[$pstAmt]]', formatPrice($HBS_CL_CLAIM->sumPresAmt), $content);
         $content = str_replace('[[$payMethod]]', $payMethod, $content);
-        $content = str_replace('[[$deniedAmt]]', formatPrice($HBS_CL_CLAIM->sumPresAmt - (int)$sumAppAmt) , $content);
+        $content = str_replace('[[$deniedAmt]]', formatPrice((int)$deniedAmt) , $content);
         $content = str_replace('[[$claimNo]]', $claim->code_claim_show , $content);
         $content = str_replace('[[$memRefNo]]', $HBS_CL_CLAIM->member->memb_ref_no , $content);
+        $content = str_replace('[[$phone]]', $HBS_CL_CLAIM->member->mobile_no , $content);
+        $content = str_replace('[[$add]]', 
+        $HBS_CL_CLAIM->member->corr_addr_1 .
+        $HBS_CL_CLAIM->member->corr_addr_2 ? ", {$HBS_CL_CLAIM->member->corr_addr_2}" : "" .
+        $HBS_CL_CLAIM->member->corr_addr_3 ? ", {$HBS_CL_CLAIM->member->corr_addr_3}" : "" .
+        $HBS_CL_CLAIM->member->corr_addr_4 ? ", {$HBS_CL_CLAIM->member->corr_addr_4}" : "" , 
+        $content);
+        $htm_infoReject = "";
+        if ($deniedAmt != 0 || $CSRRemark) {
+            $htm_infoReject = "<p><span style='font-family: arial, helvetica, sans-serif; font-size: 11pt;'>
+            Chúng tôi rất tiếc khoản tiền {$deniedAmt} còn lại không được thanh toán vì:
+            </span></p>" .
+            implode('', $CSRRemark) ."</br>". implode('', array_unique($TermRemark));
+        }
+        $content = str_replace('[[$infoReject]]', $htm_infoReject , $content);
+
         $content = str_replace('[[$DOB]]', Carbon::parse($HBS_CL_CLAIM->member->dob)->format('d/m/Y') , $content);
         $content = str_replace('[[$SEX]]', str_replace('SEX_', "",$HBS_CL_CLAIM->member->scma_oid_sex) , $content);
         $content = str_replace('[[$PoNo]]', $police->pocy_no, $content);
@@ -1466,10 +1478,12 @@ class ClaimController extends Controller
                     <thead>
                         <tr>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt" rowspan="2">Quyền lợi</th>
+                            <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Giới hạn thanh toán</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Số tiền yêu cầu bồi thường (Căn cứ trên chứng từ hợp lệ) </th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Số tiền thanh toán</th>
                         </tr>
                         <tr>
+                            <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                         </tr>
@@ -1492,11 +1506,13 @@ class ClaimController extends Controller
                     break;
             }
         }
+        
         $html .= '<tbody>';
             // nội trú
         foreach ($IP as $keyIP => $valueIP) {
             $html .= '<tr>
                     <td style="border: 1px solid black; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Nội Trú</td>
+                    <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Mỗi bệnh /thương tật </td>
                     <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                     <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                 </tr>';
@@ -1521,6 +1537,8 @@ class ClaimController extends Controller
                     case 'RB':
                     case 'EXTB':
                     case 'ICU':
+                    case 'ICU0':
+                    case 'RB0':        
                     case 'CCU':    
                     case 'HNUR':
                     case 'PNUR':
@@ -1537,6 +1555,7 @@ class ClaimController extends Controller
                 $html .=    '
                             <tr>
                                 <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content.'</td>
+                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$range_pay.'</td>
                                 <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt ; text-align: center; vertical-align: middle;">'.formatPrice($value->pres_amt).'</td>
                                 <td style="border: 1px solid black ; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                             </tr>
@@ -1570,12 +1589,14 @@ class ClaimController extends Controller
                 
                 $html .= '<tr>
                             <td style="border: 1px solid black ; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Ngoại Trú</td>
+                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Tối đa  '.formatPrice(data_get($limit,'amt_yr')).' mỗi năm</td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                         </tr>';
             }
             $html .=    '<tr>
                             <td style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content.'</td>
+                            <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content_limit.'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1590,12 +1611,14 @@ class ClaimController extends Controller
                 
                 $html .= '<tr>
                             <td style="border: 1px solid black ; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Răng</td>
+                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Tối đa  '.formatPrice(data_get($limit,'amt_yr')).' mỗi năm</td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                         </tr>';
             }
             $html .=    '<tr>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Chi phí điều trị nha khoa '.$value->RT_DIAGNOSIS->diag_desc_vn.'</td>
+                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Từ trên '.formatPrice(data_get($limit,'amt')).' mỗi lần thăm khám</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1603,7 +1626,7 @@ class ClaimController extends Controller
             $sum_app_amt += $value->app_amt;
         }
             $html .=    '<tr>
-                            <th style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt" >Tổng cộng:</th>
+                            <th style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt" colspan="2">Tổng cộng:</th>
                             
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($sum_pre_amt).'</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">[[$time_pay]]</th>
@@ -1673,7 +1696,7 @@ class ClaimController extends Controller
         $data['amt'] = 0;
         if ($value->MR_POLICY_PLAN) {
             foreach ($value->MR_POLICY_PLAN->PD_PLAN->PD_PLAN_LIMIT as $keyt => $valuet) {
-                if ($ben_head == 'ANES' || $ben_head == 'OPR' || $ben_head == 'SUR') {
+                if (in_array($ben_head,['ANES','OPR','SUR']) ) {
                     if ($valuet->limit_type == 'CH') {
                         $array  = $valuet->PD_BEN_HEAD->where('scma_oid_ben_type', 'BENEFIT_TYPE_IP')->whereIn('ben_head', ['ANES', 'OPR', 'SUR']);
                         
@@ -1692,7 +1715,7 @@ class ClaimController extends Controller
                     }
                 }
 
-                if ($ben_head == 'RB') {
+                if (in_array($ben_head,['RB','RB0','IMIS0'])) {
                     if ($valuet->limit_type == 'H') {
                         $array  = $valuet->PD_BEN_HEAD->where('scma_oid_ben_type', 'BENEFIT_TYPE_IP')->where('ben_head', 'RB');
                         
@@ -1732,7 +1755,7 @@ class ClaimController extends Controller
                     }
                 }
 
-                if ($ben_head == 'ICU' || $ben_head == 'CCU') {
+                if (in_array($ben_head, ['ICU0','ICU','CCU'])) {
                     if ($valuet->limit_type == 'CH') {
                         $array  = $valuet->PD_BEN_HEAD->where('scma_oid_ben_type', 'BENEFIT_TYPE_IP')->whereIn('ben_head', ['ICU', 'CCU']);
                         
@@ -1916,7 +1939,7 @@ class ClaimController extends Controller
 
         //save CSR
         $CsrFile = $claim->CsrFile->where('rpct_oid','CLSETTRPT01_CC')->first();
-        $url_csr = storage_path("../../vprod" . $CsrFile->path . $CsrFile->filename);
+        $url_csr = storage_path("../../cathayprod" . $CsrFile->path . $CsrFile->filename);
         $count_page = $mpdf->SetSourceFile($url_csr);
         for ($i = 1; $i <= $count_page; $i++) {
             $mpdf->AddPage('L');
@@ -1948,9 +1971,9 @@ class ClaimController extends Controller
 
         $claim  = Claim::itemClaimReject()->findOrFail($id);
         $CsrFile = $claim->CsrFile->where('rpid_oid',$request->rpid_oid)->first();
-        $url_csr = storage_path("../../vprod" . $CsrFile->path . $CsrFile->filename);
+        $url_csr = storage_path("../../cathayprod" . $CsrFile->path . $CsrFile->filename);
         $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
-        $pagecount = $mpdf->SetSourceFile(storage_path("../../vprod" . $CsrFile->path . $CsrFile->filename));
+        $pagecount = $mpdf->SetSourceFile(storage_path("../../cathayprod" . $CsrFile->path . $CsrFile->filename));
         $file_name_cat =  md5(Str::random(14).time());
         $path_file_name_cat = storage_path("app/public/cache/$file_name_cat");
         $cm_run = "gs -sDEVICE=pdfwrite -dNOPAUSE -dQUIET -dBATCH -dFirstPage=1 -dLastPage={$pagecount} -sOutputFile={$path_file_name_cat} {$url_csr}" ;

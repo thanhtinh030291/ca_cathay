@@ -15,11 +15,11 @@
                         {{ Form::label('memb_name', 'Member Name(TÊN NGƯỜI ĐƯỢC BẢO HIỂM)', ['class' => 'labelas col-md-5 mt-1']) }}
                         {{ Form::text('memb_name', $member_name, ['class' => 'form-control col-md-5 mt-1']) }}
                     
-                        {{ Form::label('pocy_ref_no', 'Policy Ref No(SỐ HỢP ĐỒNG)', ['class' => 'labelas col-md-5 mt-1']) }}
-                        {{ Form::text('pocy_ref_no', $pocy_ref_no, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
+                        {{ Form::label('pocy_no', 'Policy No(SỐ HỢP ĐỒNG)', ['class' => 'labelas col-md-5 mt-1']) }}
+                        {{ Form::text('pocy_no', $pocy_no, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
                     
-                        {{ Form::label('memb_ref_no', 'Member Ref No(MÃ SỐ THÀNH VIÊN)', ['class' => 'labelas col-md-5 mt-1']) }}
-                        {{ Form::text('memb_ref_no', $memb_ref_no, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
+                        {{ Form::label('memb_no', 'Member No(MÃ SỐ THÀNH VIÊN)', ['class' => 'labelas col-md-5 mt-1']) }}
+                        {{ Form::text('memb_no', $memb_no, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
                     
                         {{ Form::label('pres_amt', 'Presented Amt(SỐ TIỀN YÊU CẦU BỒI THƯỜNG)', ['class' => 'labelas col-md-5 mt-1']) }}
                         {{ Form::text('pres_amt', $present_amt, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
@@ -37,7 +37,7 @@
                         {{ Form::text('payment_method', $payment_method, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
                     
                         {{ Form::label('mantis_id', 'Mantis id (Số ISSUE TRÊN H-E) ', ['class' => 'labelas col-md-5 mt-1']) }}
-                        {{ Form::text('mantis_id', $data->barcode, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
+                        {{ Form::text('mantis_id', $data->mantis_id, ['class' => 'form-control col-md-5 mt-1', 'readonly']) }}
                         
                     </div>
                 </div>

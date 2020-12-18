@@ -77,7 +77,7 @@ class Claim extends BaseModel
     //get reject code hbs
     public function getRejectCodeAttribute(){
         $condition_re = function ($q){
-            $q->selectRaw("HBS.fn_get_sys_code_desc_vn(SCMA_OID_CL_REJ_CODE) content, rej_amt amount , (null) id , clli_oid");
+            $q->selectRaw("fn_get_sys_code_desc_vn(SCMA_OID_CL_REJ_CODE) content, rej_amt amount , (null) id , clli_oid");
         };
 
         $condition = function ($q) use ($condition_re){
