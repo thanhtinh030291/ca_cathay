@@ -915,8 +915,8 @@ class AjaxCommonController extends Controller
         $body = [
             'access_token' => $token,
             'memb_name' => $request->memb_name,
-            'pocy_ref_no' => $request->pocy_ref_no,
-            'memb_ref_no' => $request->memb_ref_no,
+            'pocy_ref_no' => $request->pocy_no,
+            'memb_ref_no' => $request->memb_no,
             'pres_amt' => $request->pres_amt,
             'app_amt' => $request->app_amt,
             'tf_amt' => $request->tf_amt,
