@@ -906,7 +906,9 @@ class AjaxCommonController extends Controller
     }
 
     public static function sendPayment($request, $id_claim){
+        
         $token = getTokenCPS();
+      
         $headers = [
             'Content-Type' => 'application/json',
         ];
@@ -923,7 +925,6 @@ class AjaxCommonController extends Controller
             'mantis_id' => $request->mantis_id,
             'username'    => 'claimassistant'
         ];
-        
         $client = new \GuzzleHttp\Client([
             'headers' => $headers
         ]);

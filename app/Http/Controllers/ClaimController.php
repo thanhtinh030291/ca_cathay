@@ -347,10 +347,9 @@ class ClaimController extends Controller
             $payment_history = data_get($payment_history_cps,'data_full',[]);
             $approve_amt = data_get($payment_history_cps,'approve_amt');
             $present_amt = data_get($payment_history_cps,'present_amt');
-            
             $payment_method = $claim_type == "P" ? "TT" :  data_get($payment_history_cps,'payment_method');
-            $pocy_no = data_get($payment_history_cps,'pocy_no');
-            $memb_no = data_get($payment_history_cps,'memb_no');
+            $pocy_no = data_get($payment_history_cps,'pocy_ref_no');
+            $memb_no = data_get($payment_history_cps,'memb_ref_no');
             $member_name = data_get($payment_history_cps,'member_name');
             $balance_cps = json_decode(AjaxCommonController::getBalanceCPS($data->clClaim->member->mbr_no , $data->code_claim_show)->getContent(),true);
             $balance_cps = collect(data_get($balance_cps, 'data_full'));
@@ -372,7 +371,6 @@ class ClaimController extends Controller
         if($count_ap > 0){
             $can_pay_rq = true;
         }
-        
         $manager_gop_accept_pay = 'error';
         $hospital_request = $claim->hospital_request;
         $list_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('text', 'id') : [];
