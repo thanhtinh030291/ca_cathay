@@ -606,18 +606,6 @@ function note_pay($export_letter){
 
 function datepayment(){
     $now = Carbon\Carbon::now();
-    
-    switch ($now->dayOfWeek) {
-        case 5:
-            $now = $now->addDays(3);
-            break;
-        case 6:
-            $now = $now->addDays(2);
-            break;
-        default:
-            $now = $now->addDays(1);
-            break;
-    }
     return "Ngày ".$now->day." Tháng ".$now->month." Năm ".$now->year;
 }
 function notifi_system($content, $arrUserID = []){
