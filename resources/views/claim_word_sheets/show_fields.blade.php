@@ -172,7 +172,7 @@
             <div class="row">
                 <p class="col-md-1">BENEFIT </p> 
                 <div class="col-md-2">
-                    {{ Form::select('_benefit[content]', config('constants.benefit'),null, ["id" =>"benefit_content",'class'=>" select2 form-control " ]) }} 
+                    {{ Form::select('_benefit[content]', $benefit,null, ["id" =>"benefit_content",'class'=>" select2 form-control " ]) }} 
                 </div>
                 {{ Form::text('_type_of_visit[to]', '' , ["id" =>"benefit_to",'class'=>"imask-input form-control col-md-2" ]) }}
                 {{ Form::text('_benefit[amount]', null, ["id" =>"benefit_amount",'class'=>"item-price form-control col-md-2 "]) }}
@@ -211,7 +211,7 @@
             <div id="clone_benefit" style="display: none">
                 <div class = "row mt-2">
                     <div class="col-sm-6">
-                        {{ Form::select('_benefit[content]', config('constants.benefit'),null, ['class'=>" _select2 form-control " ]) }}
+                        {{ Form::select('_benefit[content]', $benefit, null, ['class'=>" _select2 form-control " ]) }}
                     </div>
                     {{ Form::text('_benefit[amount]', null, ['class'=>"item-price form-control col-sm-5 benefit_input", 'onchange' => 'add_amt()']) }}
                     <button type="button" class="col-md-1 remove_field_btn btn btn-danger">X</>

@@ -1428,6 +1428,7 @@ class ClaimController extends Controller
         $content = str_replace('[[$claimNo]]', $claim->code_claim_show , $content);
         $content = str_replace('[[$memRefNo]]', $HBS_CL_CLAIM->member->memb_ref_no , $content);
         $content = str_replace('[[$phone]]', $HBS_CL_CLAIM->member->mobile_no , $content);
+        $content = str_replace('[[$email]]', $HBS_CL_CLAIM->member->email , $content);
         $content = str_replace('[[$add]]', 
         $HBS_CL_CLAIM->member->corr_addr_1 .
         $HBS_CL_CLAIM->member->corr_addr_2 ? ", {$HBS_CL_CLAIM->member->corr_addr_2}" : "" .
@@ -1465,6 +1466,8 @@ class ClaimController extends Controller
     function tableInfoPayment($HBS_CL_CLAIM){
         $sum_pre_amt = 0;
         $sum_app_amt = 0;
+        $HbsBenhead = \App\HbsBenhead::pluck('desc_vn','code');
+        
         $html = '
         <style type="text/css">
             table { page-break-inside:auto ; font-size: 11pt; font-family: arial, helvetica, sans-serif;}
@@ -1476,12 +1479,10 @@ class ClaimController extends Controller
                     <thead>
                         <tr>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt" rowspan="2">Quyền lợi</th>
-                            <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Giới hạn thanh toán</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Số tiền yêu cầu bồi thường (Căn cứ trên chứng từ hợp lệ) </th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Số tiền thanh toán</th>
                         </tr>
                         <tr>
-                            <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Đồng</th>
                         </tr>
@@ -1504,56 +1505,20 @@ class ClaimController extends Controller
                     break;
             }
         }
-        
         $html .= '<tbody>';
             // nội trú
         foreach ($IP as $keyIP => $valueIP) {
             $html .= '<tr>
                     <td style="border: 1px solid black; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Nội Trú</td>
-                    <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Mỗi quyền lợi /Năm </td>
                     <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                     <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                 </tr>';
             foreach ($valueIP as $key => $value) {
-                $content =config('constants.content_ip.'.$value->PD_BEN_HEAD->ben_head);
                 $range_pay = "";
-                $limit = $this->getlimitIP($value);
-                switch ($value->PD_BEN_HEAD->ben_head) {
-                    case 'ANES':
-                    case 'OPR':
-                    case 'SUR':
-                        $range_pay = " Tối đa ".formatPrice(data_get($limit,'amt'))." cho mỗi Bệnh tật/Thương tật, mỗi cuộc phẫu thuật";
-                        break;
-                    case 'HSP':
-                    case 'HVIS':
-                    case 'IMIS':
-                    case 'PORX':
-                    case 'POSH':
-                    case 'LAMB':
-                        $range_pay = " Tối đa ".formatPrice(data_get($limit,'amt'))." cho mỗi Bệnh tật/Thương tật, mỗi năm";
-                        break;
-                    case 'RB':
-                    case 'EXTB':
-                    case 'ICU':
-                    case 'ICU0':
-                    case 'RB0':        
-                    case 'CCU':    
-                    case 'HNUR':
-                    case 'PNUR':
-                        $range_pay = " Tối đa ".formatPrice(data_get($limit,'amt'))." mỗi ngày";
-                        break;
-                    case 'ER':
-                    case 'TDAM':
-                        $range_pay = " Tối đa ".formatPrice(data_get($limit,'amt'))."  cho mỗi Tai nạn, mỗi năm";
-                        break;
-                    default:
-                        $range_pay = " Tối đa ".formatPrice(data_get($limit,'amt'));
-                        break;
-                }
+                
                 $html .=    '
                             <tr>
-                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content.'</td>
-                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$range_pay.'</td>
+                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$HbsBenhead[$value->PD_BEN_HEAD->ben_head].'</td>
                                 <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt ; text-align: center; vertical-align: middle;">'.formatPrice($value->pres_amt).'</td>
                                 <td style="border: 1px solid black ; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                             </tr>
@@ -1564,37 +1529,17 @@ class ClaimController extends Controller
         }
         // ngoại trú
         foreach ($OP as $key => $value) {
-            $content =config('constants.content_op.'.$value->PD_BEN_HEAD->ben_head);
-            $limit = $this->getlimitOP($value);
             
-            $content_limit = "";
-            switch ($value->PD_BEN_HEAD->ben_head) {
-                case 'OVRX':
-                case 'OV':
-                case 'RX':
-                case 'LAB':
-                case 'XRAY':
-                case 'PHYS':
-                case 'CHIR':    
-                    $content_limit = "Từ trên ".formatPrice(data_get($limit,'amt_from'))." đến tối đa ". formatPrice(data_get($limit,'amt_to')) ." mỗi lần thăm khám";
-                    break;
-                
-                default:
-                    $content_limit = "Tối đa ".formatPrice(data_get($limit,'amt_from'))." mỗi năm";
-                    break;
-            }
             if($key == 0){
                 
                 $html .= '<tr>
                             <td style="border: 1px solid black ; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Ngoại Trú</td>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Tối đa  '.formatPrice(data_get($limit,'amt_yr')).' mỗi năm</td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                         </tr>';
             }
             $html .=    '<tr>
-                            <td style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content.'</td>
-                            <td style="border: 1px solid black; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$content_limit.'</td>
+                            <td style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$HbsBenhead[$value->PD_BEN_HEAD->ben_head].'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1604,19 +1549,16 @@ class ClaimController extends Controller
 
         // rang
         foreach ($DT as $key => $value) {
-            $limit = $this->getlimitDT($value);
             if($key == 0){
                 
                 $html .= '<tr>
                             <td style="border: 1px solid black ; font-weight:bold; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Răng</td>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Tối đa  '.formatPrice(data_get($limit,'amt_yr')).' mỗi năm</td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                             <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt"></td>
                         </tr>';
             }
             $html .=    '<tr>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Chi phí điều trị nha khoa '.$value->RT_DIAGNOSIS->diag_desc_vn.'</td>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">Từ trên '.formatPrice(data_get($limit,'amt')).' mỗi lần thăm khám</td>
+                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$HbsBenhead[$value->PD_BEN_HEAD->ben_head].'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1624,7 +1566,7 @@ class ClaimController extends Controller
             $sum_app_amt += $value->app_amt;
         }
             $html .=    '<tr>
-                            <th style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt" colspan="2">Tổng cộng:</th>
+                            <th style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt" >Tổng cộng:</th>
                             
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($sum_pre_amt).'</th>
                             <th style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">[[$time_pay]]</th>

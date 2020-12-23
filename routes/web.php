@@ -130,7 +130,7 @@ Route::group(['prefix' => 'admin'], function () {
         Route::post('setting/notifiAllUser','SettingController@notifiAllUser')->middleware(['role:Admin']);
         Route::post('setting/checkUpdateClaim','SettingController@checkUpdateClaim')->middleware(['role:Admin']);
         Route::post('setting/checkUpdateLogApproved','SettingController@checkUpdateLogApproved')->middleware(['role:Admin']);
-
+        Route::post('setting/updateBenhead','SettingController@updateBenhead')->middleware(['role:Admin']);
         Route::resource('uncSign', 'UncSignController');
 
         //payment Histor
