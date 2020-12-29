@@ -347,7 +347,7 @@ class ClaimController extends Controller
             $payment_history = data_get($payment_history_cps,'data_full',[]);
             $approve_amt = data_get($payment_history_cps,'approve_amt');
             $present_amt = data_get($payment_history_cps,'present_amt');
-            $payment_method = $claim_type == "P" ? "TT" :  data_get($payment_history_cps,'payment_method');
+            $payment_method = $claim_type == "P" ? "TT" :  str_replace("CL_PAYMENT_METHOD_","",data_get($payment_history_cps,'payment_method'));
             $pocy_no = data_get($payment_history_cps,'pocy_ref_no');
             $memb_no = data_get($payment_history_cps,'memb_ref_no');
             $member_name = data_get($payment_history_cps,'member_name');
@@ -1518,7 +1518,7 @@ class ClaimController extends Controller
                 
                 $html .=    '
                             <tr>
-                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$HbsBenhead[$value->PD_BEN_HEAD->ben_head].'</td>
+                                <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.data_get($HbsBenhead,$value->PD_BEN_HEAD->ben_head).'</td>
                                 <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt ; text-align: center; vertical-align: middle;">'.formatPrice($value->pres_amt).'</td>
                                 <td style="border: 1px solid black ; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                             </tr>
@@ -1539,7 +1539,7 @@ class ClaimController extends Controller
                         </tr>';
             }
             $html .=    '<tr>
-                            <td style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$HbsBenhead[$value->PD_BEN_HEAD->ben_head].'</td>
+                            <td style="border: 1px solid black ;font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.data_get($HbsBenhead,$value->PD_BEN_HEAD->ben_head).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
@@ -1558,7 +1558,7 @@ class ClaimController extends Controller
                         </tr>';
             }
             $html .=    '<tr>
-                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.$HbsBenhead[$value->PD_BEN_HEAD->ben_head].'</td>
+                            <td style="border: 1px solid black ; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.data_get($HbsBenhead,$value->PD_BEN_HEAD->ben_head).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->pres_amt).'</td>
                             <td style="border: 1px solid black; text-align: center; vertical-align: middle; font-family: arial, helvetica, sans-serif ; font-size: 11pt">'.formatPrice($value->app_amt).'</td>
                         </tr>';
