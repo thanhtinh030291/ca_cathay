@@ -1429,12 +1429,9 @@ class ClaimController extends Controller
         $content = str_replace('[[$memRefNo]]', $HBS_CL_CLAIM->member->memb_ref_no , $content);
         $content = str_replace('[[$phone]]', $HBS_CL_CLAIM->member->mobile_no , $content);
         $content = str_replace('[[$email]]', $HBS_CL_CLAIM->member->email , $content);
-        $content = str_replace('[[$add]]', 
-        $HBS_CL_CLAIM->member->corr_addr_1 .
-        $HBS_CL_CLAIM->member->corr_addr_2 ? ", {$HBS_CL_CLAIM->member->corr_addr_2}" : "" .
-        $HBS_CL_CLAIM->member->corr_addr_3 ? ", {$HBS_CL_CLAIM->member->corr_addr_3}" : "" .
-        $HBS_CL_CLAIM->member->corr_addr_4 ? ", {$HBS_CL_CLAIM->member->corr_addr_4}" : "" , 
-        $content);
+        $add = [$HBS_CL_CLAIM->member->corr_addr_1 , $HBS_CL_CLAIM->member->corr_addr_2 , $HBS_CL_CLAIM->member->corr_addr_3 ,$HBS_CL_CLAIM->member->corr_addr_4];
+        $add = array_filter($add);
+        $content = str_replace('[[$add]]', empty($add) ? "" : implode(", ",$add) ,$content);
         $htm_infoReject = "";
         if ($deniedAmt != 0 || $CSRRemark) {
             $htm_infoReject = "<p><span style='font-family: arial, helvetica, sans-serif; font-size: 11pt;'>
