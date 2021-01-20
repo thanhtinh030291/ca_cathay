@@ -873,7 +873,7 @@ class ClaimController extends Controller
         $namefile = Str::slug("{$export_letter->letter_template->name}_{$HBS_CL_CLAIM->memberNameCap}", '-');
         $body = [
             'user_email' => $user->email,
-            'issue_id' => $claim->mantis_id,
+            'issue_id' => $claim->barcode,
             'text_note' => " Dear CS,  \n Claim gửi là thư  '{$export_letter->letter_template->name}'  và chi tiết theo như file đính kèm. \n Thanks,",
 
         ];
@@ -949,7 +949,7 @@ class ClaimController extends Controller
             }
         }
         
-        if($export_letter->letter_template->name == 'Thanh Toán Bổ Sung'){
+        if($export_letter->letter_template->name == 'Thư thông báo bồi thường'){
             
             $diff = $HBS_CL_CLAIM->SumPresAmt - $HBS_CL_CLAIM->SumAppAmt ;
             
@@ -968,8 +968,10 @@ class ClaimController extends Controller
                 'content' => $export_letter->approve['data_payment']
             ];
         }
+        
         try {
             $res = PostApiMantic('api/rest/plugins/apimanagement/issues/add_note_reply_letter/files', $body);
+            
             $res = json_decode($res->getBody(),true);
         } catch (Exception $e) {
 

@@ -125,7 +125,7 @@ $totalAmount = 0;
                             {{ Form::label('type', $data->barcode , array('class' => 'col-md-8')) }}
 
                             {{ Form::label('type',  'Etalk Link', array('class' => 'col-md-4')) }}
-                            <a class="btn btn-primary col-md-8 " target="_blank" href="{{config('constants.url_mantic').'view.php?id='.$data->mantis_id }}">Link</a>
+                            <a class="btn btn-primary col-md-8 " target="_blank" href="{{config('constants.url_mantic').'view.php?id='.$data->barcode }}">Link</a>
                             
                             
                             {{ Form::label('type',  __('message.account_create'), array('class' => 'col-md-4')) }}
