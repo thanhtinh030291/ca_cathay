@@ -121,7 +121,7 @@
             <p class="font-weight-bold">Policy Holder: {{$HBS_CL_CLAIM->policyHolder->poho_name_1}}</p>
         </td>
         <td>
-            <p class="font-weight-bold">Policy Effective Date: {{ $member->pocyEffdate}}</p>
+            <p class="font-weight-bold">Policy Effective Date: {{ Carbon\Carbon::parse($HBS_CL_CLAIM->police->eff_date)->format('d/m/Y')}}</p>
         </td>
         <td>
             <p class="font-weight-bold">Member Effective Date: {{ Carbon\Carbon::parse($member->eff_date)->format('d/m/Y')}}</p>
