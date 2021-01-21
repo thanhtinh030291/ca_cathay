@@ -874,7 +874,7 @@ class ClaimController extends Controller
         $body = [
             'user_email' => $user->email,
             'issue_id' => $claim->barcode,
-            'text_note' => " Dear CS,  \n Claim gửi là thư  '{$export_letter->letter_template->name}'  và chi tiết theo như file đính kèm. \n Thanks,",
+            'text_note' => " Dear CATHAY,  \n PCV gửi là thư  '{$export_letter->letter_template->name}'  và chi tiết theo như file đính kèm. \n Thanks,",
 
         ];
         
