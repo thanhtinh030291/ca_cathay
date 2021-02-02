@@ -563,8 +563,17 @@ function CSRRemark_TermRemark($claim){
     $show_term = [];
     foreach ($TermRemark as $key => $value) {
         
-                
-        $show_term[] = "<p style='text-align: justify;'><span style='font-family: arial, helvetica, sans-serif ; font-size: 11pt'>Quý khách vui lòng tham khảo các định nghĩa của Quy tắc và Điều khoản bảo hiểm Chăm sóc sức khỏe:</span></p>";
+        switch ($key) {
+            case '10':
+                $show_term[] = "<p style='text-align: justify;'><span style='font-family: arial, helvetica, sans-serif ; font-size: 11pt'>Quý khách vui lòng tham khảo Điều 10_ Các điều khoản loại trừ bảo hiểm Chăm sóc sức khỏe:</span></p>
+                <p style='text-align: justify;'><span style='font-family: arial, helvetica, sans-serif ; font-size: 11pt'>Công ty không có trách nhiệm chi trả bất kỳ quyền lợi nào cho bất kỳ việc điều trị nào và/hoặc chi phí nào của Người được bảo hiểm nếu việc điều trị đó và/hoặc chi phí đó phát sinh từ hoặc thuộc bất kỳ trường hợp hoặc sự việc nào dưới đây:</p>
+                ";
+                break;
+            default:
+                $show_term[] = "<p style='text-align: justify;'><span style='font-family: arial, helvetica, sans-serif ; font-size: 11pt'>Quý khách vui lòng tham khảo các định nghĩa của Quy tắc và Điều khoản bảo hiểm Chăm sóc sức khỏe:</span></p>";
+                break;
+        }        
+        
         $collect_value = collect($value)->sortBy('num');
         foreach ($collect_value as $key_c => $value_c) {
             $show_term[] = $value_c['content'];
