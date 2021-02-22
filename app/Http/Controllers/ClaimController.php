@@ -179,22 +179,38 @@ class ClaimController extends Controller
     public function store(formClaimRequest $request)
     {
         $claim_type = $request->claim_type;
+        $dataNew = $request->except(['file','file2','table2_parameters', 'table1_parameters']);
+        $user = Auth::User();
+        $userId = $user->id;
         //validate
         // $issue = MANTIS_CUSTOM_FIELD_STRING::where('value',(int)$request->barcode)->where('field_id',14)->get();
         // if($issue->count() != 1){
         //     $request->session()->flash('errorStatus', 'Phải tồn tại duy nhất 1 Common ID trên Health Etalk ');
         //     return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
         // }
+        // $issue = MANTIS_BUG::find((int)$request->barcode);
+        // if(!$issue){
+        //     $request->session()->flash('errorStatus', 'Không tồn tại số barcode này');
+        //     return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
+        // }
+        // $cate = $issue->CATEGORY->name;
+        // if($user->hasRole('ClaimGOP')){
+        //     $dataNew['claim_type'] = "P";
+        //     if(!in_array(trim($cate),['Direct Billing','GOP'])){
+        //         $request->session()->flash('errorStatus', 'Category trên Etalk chưa đúng , vui lòng cập nhật lại');
+        //         return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
+        //     }
+        // }
         
         //end valid
+        
+        
         if ($request->_url_file_sorted) {
             saveFile($request->_url_file_sorted[0], config('constants.sortedClaimUpload'));
         }
         $file = $request->file;
-        $dataNew = $request->except(['file','file2','table2_parameters', 'table1_parameters']);
         
-        $user = Auth::User();
-        $userId = $user->id;
+        //$dataNew['category'] = $cate ;
         $dirUpload = Config::get('constants.formClaimUpload');
         
         // store file
@@ -210,6 +226,7 @@ class ClaimController extends Controller
         if($user->hasRole('ClaimGOP')){
             $dataNew['claim_type'] = "P";
         }
+        
         $dataItems = [];
         // get value item orc
 
@@ -415,7 +432,8 @@ class ClaimController extends Controller
             $body = [
                 'user_email' => $user->email,
                 'issue_id' => $claim->barcode,
-                'text_note' => " Dear DLVN, \n Đính kèm là hồ sơ GOP. \n Thanks,",
+                'status_id' => 79 , // readyforprocess
+                'text_note' => " Dear CATHAY, \n Đính kèm là hồ sơ GOP. \n Thanks,",
             ];
             $handle = fopen(storage_path("app/public/sortedClaim/{$dataUpdate['url_file_sorted']}"),'r');
             $treamfile = stream_get_contents($handle);
@@ -913,6 +931,10 @@ class ClaimController extends Controller
     
             }else{
                 $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/'), 'margin_top' => 32]);
+                $mpdf->WriteHTML('
+                <div style="position: absolute; left: 55px; top: 55px;font-weight: bold; ">
+                    <img src="'.asset("images/logo-cathay.png").'" alt="head">
+                </div>');
                 $mpdf->WriteHTML(data_get($export_letter->approve, 'data'));
             }
             
@@ -1213,6 +1235,10 @@ class ClaimController extends Controller
     
             }else{
                 $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/'), 'margin_top' => 32]);
+                $mpdf->WriteHTML('
+                <div style="position: absolute; left: 55px; top: 55px;font-weight: bold; ">
+                    <img src="'.asset("images/logo-cathay.png").'" alt="head">
+                </div>');
                 $mpdf->WriteHTML($data['content']);
             }
             
@@ -1342,11 +1368,11 @@ class ClaimController extends Controller
         $tableInfo = $this->tableInfoPayment($HBS_CL_CLAIM);
         $incurDateTo = Carbon::parse($HBS_CL_CLAIM->FirstLine->incur_date_to);
         $incurDateFrom = Carbon::parse($HBS_CL_CLAIM->FirstLine->incur_date_from);
-        $RBGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['RB'])->sum('app_amt');
-        $SURGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['SUR','OPR','ANES','RADIA','CHEMO'])->sum('app_amt');
+        $RBGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['RB','OERB','RB0'])->sum('app_amt');
+        $SURGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['SUR','OESUR'])->sum('app_amt');
         $EXTBGOP = $HBS_CL_CLAIM->HBS_CL_LINE->where('PD_BEN_HEAD.ben_head','EXTB')->sum('app_amt');
-        $ICUGOP = $HBS_CL_CLAIM->HBS_CL_LINE->where('PD_BEN_HEAD.ben_head','ICU')->sum('app_amt');
-        $OTHERGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereNotIn('PD_BEN_HEAD.ben_head',['RB','SUR','EXTB','ICU','OPR','ANES','RADIA','CHEMO'])->sum('app_amt');
+        $ICUGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereIn('PD_BEN_HEAD.ben_head',['ICU','ICU0'])->sum('app_amt');
+        $OTHERGOP = $HBS_CL_CLAIM->HBS_CL_LINE->whereNotIn('PD_BEN_HEAD.ben_head',['RB','OERB','RB0','SUR','OESUR','EXTB','ICU','ICU0'])->sum('app_amt');
         $ProApvAmt = data_get($claim->hospital_request,'prov_gop_pres_amt',0) - $sumAmountReject;
         $typeGOP = typeGop(data_get($claim->hospital_request,'type_gop',0));
         $noteGOP = data_get($claim->hospital_request,'note',"");
