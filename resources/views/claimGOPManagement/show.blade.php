@@ -181,7 +181,7 @@ $totalAmount = 0;
 
                             {{ Form::label('type',  'HBS Link', array('class' => 'col-md-4')) }}
                             <a class="btn btn-primary col-md-4 mt-1"  href="ie:{{config('constants.url_hbs')}}/hbs/cl/ClGeneral.do?formAction=enquiry&id=clam{{$data->code_claim}}">View</a>
-                        <a class="btn btn-primary col-md-4 ml- 1 mt-1"  href="ie:{{config('constants.url_hbs')}}/hbs/cl/ClClaim.do?formAction=barcode&amp;barCodeId={{$data->barcode}}&amp;product=MD&amp;policyRefNo={{$pocy_ref_no}}&amp;memberRefNo={{$memb_ref_no}}">Edit</a>
+                        <a class="btn btn-primary col-md-4 ml- 1 mt-1"  href="ie:{{config('constants.url_hbs')}}/hbs/cl/ClClaim.do?formAction=barcode&amp;barCodeId={{$data->barcode}}&amp;product=MD&amp;policyRefNo={{$pocy_no}}&amp;memberRefNo={{$memb_no}}">Edit</a>
                             
                             {{ Form::label('type',  __('message.account_create'), array('class' => 'col-md-4')) }}
                             {{ Form::label('type', $admin_list[$data->updated_user] ." ". $data->created_at, array('class' => 'col-md-8')) }} 

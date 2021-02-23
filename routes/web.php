@@ -142,6 +142,12 @@ Route::group(['prefix' => 'admin'], function () {
 
         //Group mem
         Route::resource('groupUsers', 'GroupUserController');
+
+        //report for admin claim
+        Route::resource('reportAdmins', 'ReportAdminController');
+
+        //report for admin claim
+        Route::resource('reportGop', 'ReportGopController');
         
     });
 

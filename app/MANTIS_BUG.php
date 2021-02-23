@@ -4,7 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MANTIS_BUG extends BaseModelMantisDLVN
+class MANTIS_BUG extends BaseModelMantis
 {
     protected $table = 'mantis_bug_table';
     protected $guarded = ['id'];
@@ -18,4 +18,10 @@ class MANTIS_BUG extends BaseModelMantisDLVN
     {
         return $this->hasOne('App\MANTIS_BUG_TEXT', 'id', 'bug_text_id');
     }
+
+    public function CATEGORY()
+    {
+        return $this->belongsTo('App\MANTIS_CATEGORY', 'category_id', 'id');
+    }
+
 }

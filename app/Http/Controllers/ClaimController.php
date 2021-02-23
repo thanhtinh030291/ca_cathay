@@ -183,24 +183,24 @@ class ClaimController extends Controller
         $user = Auth::User();
         $userId = $user->id;
         //validate
-        // $issue = MANTIS_CUSTOM_FIELD_STRING::where('value',(int)$request->barcode)->where('field_id',14)->get();
+        //$issue = MANTIS_CUSTOM_FIELD_STRING::where('value',(int)$request->barcode)->where('field_id',14)->get();
         // if($issue->count() != 1){
         //     $request->session()->flash('errorStatus', 'Phải tồn tại duy nhất 1 Common ID trên Health Etalk ');
         //     return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
         // }
-        // $issue = MANTIS_BUG::find((int)$request->barcode);
-        // if(!$issue){
-        //     $request->session()->flash('errorStatus', 'Không tồn tại số barcode này');
-        //     return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
-        // }
-        // $cate = $issue->CATEGORY->name;
-        // if($user->hasRole('ClaimGOP')){
-        //     $dataNew['claim_type'] = "P";
-        //     if(!in_array(trim($cate),['Direct Billing','GOP'])){
-        //         $request->session()->flash('errorStatus', 'Category trên Etalk chưa đúng , vui lòng cập nhật lại');
-        //         return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
-        //     }
-        // }
+        $issue = MANTIS_BUG::find((int)$request->barcode);
+        if(!$issue){
+            $request->session()->flash('errorStatus', 'Không tồn tại số barcode này');
+            return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
+        }
+        $cate = $issue->CATEGORY->name;
+        if($user->hasRole('ClaimGOP')){
+            $dataNew['claim_type'] = "P";
+            if(!in_array(trim($cate),['Direct Billing','GOP'])){
+                $request->session()->flash('errorStatus', 'Category trên Etalk chưa đúng , vui lòng cập nhật lại');
+                return $claim_type == "P" ? redirect('/admin/P/claim/create')->withInput() : redirect('/admin/claim/create')->withInput() ;
+            }
+        }
         
         //end valid
         
@@ -210,7 +210,7 @@ class ClaimController extends Controller
         }
         $file = $request->file;
         
-        //$dataNew['category'] = $cate ;
+        $dataNew['category'] = $cate ;
         $dirUpload = Config::get('constants.formClaimUpload');
         
         // store file

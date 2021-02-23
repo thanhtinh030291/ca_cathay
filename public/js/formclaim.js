@@ -447,10 +447,12 @@ $(window).load(function() {
             data: {'search' : value},
         })
         .done(function(res) {
-            console.log(res.claim.barcode,  res.claim.cl_no );
+            console.log(res );
             $('.barcode').val(res.claim.barcode);
             $('.code_claim_show').val(res.claim.cl_no);
             $('.member_name').val(res.member.mbr_first_name);
+            var df_r_n = res.claim.h_b_s__c_l__l_i_n_e[0].db_ref_no == null ? "" : res.claim.h_b_s__c_l__l_i_n_e[0].db_ref_no;
+            //$('#db_ref_no').val(df_r_n);
             container.empty();
             container.append('<p class="card-text">Full-Name: '+res.member.mbr_first_name+'</p>')
             .append('<p class="card-text">Member No: '+ res.member.mbr_no +'</p>')

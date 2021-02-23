@@ -71,14 +71,15 @@ return [
             ],
         ],
         
+
         'mysql_mantic' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
-            'host' => env('DB_MANTIS_HOST', '127.0.0.1'),
-            'port' => env('DB_MANTIS_PORT', '3306'),
-            'database' => env('DB_MANTIS_DATABASE', 'forge'),
-            'username' => env('DB_MANTIS_USERNAME', 'forge'),
-            'password' => env('DB_MANTIS_PASSWORD', ''),
+            'host' => '192.168.0.245',
+            'port' => '3306',
+            'database' => 'mantis_cathay',
+            'username' => 'tinh',
+            'password' => 'AFF797zRCF28AgP',
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8',
             'collation' => 'utf8_unicode_ci',
@@ -99,14 +100,14 @@ return [
             ],
         ],
 
-        'mysql_mantic_dlvn' => [
+        'mysql_cps' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
-            'host' => '52.163.231.87',
+            'host' => '192.168.0.245',
             'port' => '3306',
-            'database' => 'mantis_dlvn',
-            'username' => 'hbslink',
-            'password' => '8euRxww8Ztdyhwht',
+            'database' => 'payment_cathay',
+            'username' => 'tinh',
+            'password' => 'AFF797zRCF28AgP',
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8',
             'collation' => 'utf8_unicode_ci',
@@ -114,9 +115,7 @@ return [
             'prefix_indexes' => true,
             'strict' => false,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            'options' =>[PDO::ATTR_EMULATE_PREPARES => true],
             'modes'       => [
                 'ONLY_FULL_GROUP_BY',
                 'STRICT_TRANS_TABLES',

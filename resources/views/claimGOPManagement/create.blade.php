@@ -46,6 +46,9 @@
                         {{ Form::label('barcode', 'Barcode', array('class' => 'labelas')) }}
                         {{ Form::text('barcode', old('barcode'), array('id'=>'barcode', 'class' => 'barcode form-control', 'required')) }}
 
+                        {{ Form::label('db_ref_no', 'Directbilling Ref No', array('class' => 'labelas')) }}
+                        {{ Form::text('db_ref_no', old('db_ref_no'), array('id'=>'db_ref_no', 'class' => 'form-control')) }}
+
                         {{ Form::label('claim_type', 'Claim Type', array('class' => 'labelas')) }}
                         {{ Form::text('claim_type', 'P', array('id'=>'claim_type', 'class' => 'claim_type form-control', 'required', 'readonly')) }}
                         <div id="page">
