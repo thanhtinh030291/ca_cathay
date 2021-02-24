@@ -932,7 +932,7 @@ class ClaimController extends Controller
             }else{
                 $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/'), 'margin_top' => 32]);
                 $mpdf->WriteHTML('
-                <div style="position: absolute; left: 55px; top: 100px;font-weight: bold; ">
+                <div style="position: absolute; left: 55px; top: 80px;font-weight: bold; ">
                     <img src="'.asset("images/logo-cathay.png").'" alt="head">
                 </div>');
                 $mpdf->WriteHTML(data_get($export_letter->approve, 'data'));
@@ -1236,7 +1236,7 @@ class ClaimController extends Controller
             }else{
                 $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/'), 'margin_top' => 32]);
                 $mpdf->WriteHTML('
-                <div style="position: absolute; left: 55px; top: 100px;font-weight: bold; ">
+                <div style="position: absolute; left: 55px; top: 80px;font-weight: bold; ">
                     <img src="'.asset("images/logo-cathay.png").'" alt="head">
                 </div>');
                 $mpdf->WriteHTML($data['content']);
