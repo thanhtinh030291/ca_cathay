@@ -59,8 +59,14 @@
                             {{ Form::label('barcode', __('message.barcode'), ['class' => 'labelas']) }}
                             {{ Form::text('barcode', data_get($finder,'barcode'), ['class' => 'form-control']) }}
 
-                            {{ Form::label('memb_ref_no', __('message.memb_ref_no'), ['class' => 'labelas']) }}
-                            {{ Form::text('memb_ref_no', data_get($finder,'memb_ref_no'), ['class' => 'form-control']) }}
+                            {{ Form::label('member_name', 'Member Name', ['class' => 'labelas']) }}
+                            {{ Form::text('member_name', data_get($finder,'member_name'), ['class' => 'form-control']) }}
+
+                            {{ Form::label('pocy_ref_no', 'Policy Ref No', ['class' => 'labelas']) }}
+                            {{ Form::text('pocy_ref_no', data_get($finder,'pocy_ref_no'), ['class' => 'form-control']) }}
+
+                            {{ Form::label('incur_date_from', 'Incur Date From', ['class' => 'labelas']) }}
+                            {{ Form::text('incur_date_from', data_get($finder,'incur_date_from'), ['class' => 'form-control datepicker']) }}
 
                             {{ Form::label('name', __('message.prov_name'), array('class' => 'labelas')) }}
                             {{ Form::select('prov_name',[], $finder['prov_name'], ['class' => 'prov_name form-control']) }}

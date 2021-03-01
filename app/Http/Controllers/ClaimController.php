@@ -72,6 +72,7 @@ class ClaimController extends Controller
             'updated_at' => $request->updated_at,
             'letter_status' => $request->letter_status,
             'barcode' => $request->barcode,
+            'member_name' => $request->member_name
         ];
         $conditionExport = function ($q){
             $q->select('id','claim_id','status', 'info');
@@ -115,16 +116,21 @@ class ClaimController extends Controller
             $datas = $datas->whereHas('export_letter_last', $conditionHasBudget);
         }
         
-        if($request->memb_ref_no != null){
-            $memb_ref_no = str_pad($request->memb_ref_no, 10, "0", STR_PAD_LEFT);
-            $HBS_MR_MEMBER = HBS_MR_MEMBER::where('memb_ref_no',$memb_ref_no)->with('CL_LINE')->get();
-            $clam_oids = [];
-            foreach ($HBS_MR_MEMBER as $key => $value) {
-                $cl = $value->CL_LINE->pluck('clam_oid')->unique();
-                foreach ($cl as $key => $value) {
-                    array_push($clam_oids, $value);
-                }
+
+        if($request->pocy_ref_no != null){
+            $HBS_MR_POLICY  = \App\HBS_MR_POLICY::where('pocy_ref_no', $request->pocy_ref_no)->with('MR_POLICY_PLAN')->get();
+            $MR_POLICY_PLAN = $HBS_MR_POLICY->pluck('MR_POLICY_PLAN');
+            $popl_oids = [];
+            foreach ($MR_POLICY_PLAN as $key => $value) {
+                $popl_oid = $value->pluck('popl_oid')->unique()->toArray();
+                $popl_oids = array_merge($popl_oids, $popl_oid);
             }
+            $clam_oids = HBS_CL_LINE::whereIn('popl_oid',$popl_oids)->pluck('clam_oid')->unique();
+            $datas->whereIn('code_claim',$clam_oids);
+        }
+
+        if ($request->incur_date_from != null) {
+            $clam_oids = HBS_CL_LINE::where('incur_date_from', $request->incur_date_from)->pluck('clam_oid')->unique();
             $datas->whereIn('code_claim',$clam_oids);
         }
 
@@ -144,7 +150,8 @@ class ClaimController extends Controller
         $finder['prov_name'] = $request->prov_name;
         $finder['team'] = $team;
         $finder['letter_status'] = $request->letter_status;
-        $finder['memb_ref_no'] = $request->memb_ref_no ? str_pad($request->memb_ref_no, 10, "0", STR_PAD_LEFT) : $request->memb_ref_no;
+        $finder['pocy_ref_no'] = $request->pocy_ref_no;
+        $finder['incur_date_from'] = $request->incur_date_from;
         if ($claim_type == 'P'){
             return view('claimGOPManagement.index', compact('finder', 'datas', 'admin_list', 'list_status'));
         }else{
