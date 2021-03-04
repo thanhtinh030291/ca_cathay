@@ -2274,8 +2274,8 @@ class ClaimController extends Controller
             ]);
 
             // notifi admin claim
-            $claim->report_admin()->updateOrCreate(['claim_id' => $claim->id]
-                ,['REQUEST_SEND' => 1]);
+            // $claim->report_admin()->updateOrCreate(['claim_id' => $claim->id]
+            //     ,['REQUEST_SEND' => 1]);
             $to_admin_claim = User::whereHas("roles", function($q){ $q->where("name", "AdminClaim"); })->get()->pluck('id')->toArray();
             if (!empty($to_admin_claim)) {
                 foreach ($to_admin_claim as $key => $value) {
