@@ -1209,7 +1209,7 @@ class ClaimController extends Controller
             $data['content'] = str_replace('[[$per_creater_sign]]', $create_user_sign, $data['content']);
             $data['content'] = str_replace('[[$per_approve_sign]]', "", $data['content']);
             $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/'), 'margin_top' => 225, 'margin_left' => 22]);
-            $match_form_gop = preg_match('/(FORM GOP)/', $export_letter->letter_template->name , $matches);
+            $match_form_gop = preg_match('/GOP/', $export_letter->letter_template->name , $matches);
             if($match_form_gop){
                 $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/'), 'margin_top' => 35]);
                 $fileName = storage_path("app/public/sortedClaim")."/". $claim->hospital_request->url_form_request;
