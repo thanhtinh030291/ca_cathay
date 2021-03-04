@@ -1394,9 +1394,9 @@ class ClaimController extends Controller
         $content = str_replace('[[$ProvPstAmt]]', formatPrice(data_get($claim->hospital_request,'prov_gop_pres_amt')), $content);
         $content = str_replace('[[$ProDeniedAmt]]', formatPrice($sumAmountReject), $content);
         $content = str_replace('[[$ProvName]]', $Provider->prov_name, $content);
-        $content = str_replace('[[$bankNameProv]]', $Provider->cl_bank_name, $content);
-        $content = str_replace('[[$bankAddressProv]]', $Provider->cl_pay_bank_city, $content);
-        $content = str_replace('[[$acctNoProv]]', $Provider->cl_pay_acct_no, $content);
+        $content = str_replace('[[$bankNameProv]]', $Provider->bank_name, $content);
+        $content = str_replace('[[$bankAddressProv]]', $Provider->bank_city, $content);
+        $content = str_replace('[[$acctNoProv]]', $Provider->acct_no, $content);
         $content = str_replace('[[$payeeProv]]', $Provider->payee, $content);
         $content = str_replace('[[$ProAddress]]', implode(",",$prov_address), $content);
         $content = str_replace('[[$Diagnosis]]', $Diagnosis, $content);
@@ -2218,7 +2218,7 @@ class ClaimController extends Controller
             $body = [
                 'user_email' => $user->email,
                 'issue_id' => $claim->barcode,
-                'text_note' => " Dear DLVN, \n PCV gửi là thông tin thanh toán và chi tiết theo như file đính kèm. \n Thanks,",
+                'text_note' => " Dear CATHAY, \n PCV gửi là thông tin thanh toán và chi tiết theo như file đính kèm. \n Thanks,",
     
             ];
             $mpdf = new \Mpdf\Mpdf(['tempDir' => base_path('resources/fonts/')]);
