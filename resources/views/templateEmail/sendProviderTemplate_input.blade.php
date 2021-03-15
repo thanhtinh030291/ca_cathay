@@ -34,7 +34,7 @@
                         @endif
                       @endforeach --}}
                       <p>-         Thư bảo lãnh viện phí thực tế sẽ được gửi khi KH xuất viện.</p>
-                      <p>-         Trước khi KH xuất viện, vui lòng gửi cho PCV Chi phí thực tế, Giấy ra viện, Cận lâm sàng và các chứng từ y tế có liên quan khác.</p>
+                      <p>-         Trước khi KH xuất viện 02 giờ, vui lòng gửi cho PCV Chi phí thực tế, Giấy ra viện, Cận lâm sàng, Toa thuốc xuất viện (nếu có) và các chứng từ y tế có liên quan khác.</p>
                       <p></p>
                       <p>-    Trường hợp KH cần lưu viện thêm, vui lòng gửi cho PCV:</p>
                       <p>1.       Tóm tắt Bệnh án/Báo cáo y tế có ghi rõ tình trạng hiện tại của KH, lý do cần lưu viện thêm và thời gian cần lưu viện thêm,</p>

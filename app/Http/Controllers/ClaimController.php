@@ -399,7 +399,7 @@ class ClaimController extends Controller
         $hospital_request = $claim->hospital_request;
         $list_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('text', 'id') : [];
         $selected_diagnosis = $claim->hospital_request ? collect($claim->hospital_request->diagnosis)->pluck('id') : null;
-        $fromEmail = $claim->inbox_email ? $claim->inbox_email->from . "," . implode(",", $claim->inbox_email->to) : "";
+        $fromEmail = $claim->inbox_email ? $claim->inbox_email->from . ",customerservice@pacificcross.com.vn," . implode(",", $claim->inbox_email->to) : "customerservice@pacificcross.com.vn";
         $reject_code = collect($claim->RejectCode)->flatten(1)->values()->all();
         $compact = compact(['data', 'dataImage', 'items', 'admin_list', 'listReasonReject', 
         'listLetterTemplate' , 'list_status_ad', 'user', 'payment_history', 'approve_amt','tranfer_amt','present_amt',
@@ -1001,7 +1001,11 @@ class ClaimController extends Controller
             $export_letter->info = $data;
             $export_letter->save();
             if ($export_letter->apv_amt > 0) {
-                $claim->finish_and_pay()->updateOrCreate([], [
+                $pay_time = PaymentHistory::where('CL_NO', $claim->code_claim_show)->count();
+                $claim->finish_and_pay()->updateOrCreate([
+                    'cl_no' => $claim->code_claim_show,
+                    'pay_time' => $pay_time + 1
+                ], [
                     'cl_no' => $claim->code_claim_show,
                     'mantis_id' =>  $claim->barcode,
                     'approve_amt' => $export_letter->apv_amt,
@@ -1009,6 +1013,7 @@ class ClaimController extends Controller
                     'payed' => 0,
                     'user' => $user->id,
                     'notify' => 1,
+                    'pay_time' => $pay_time + 1
                 ]);
             }
         }
@@ -1346,8 +1351,6 @@ class ClaimController extends Controller
         $police = $HBS_CL_CLAIM->Police;
         $policyHolder = $HBS_CL_CLAIM->policyHolder;
         $payMethod = payMethod($HBS_CL_CLAIM);
-        $barcode = '<barcode code="'.$claim->barcode.'" type="C93"  height="1.3" />'
-        .'<p style="text-align: right;">'.$claim->barcode.'</p>';
         $CSRRemark_TermRemark = CSRRemark_TermRemark($claim);
 
         $plan = $HBS_CL_CLAIM->plan;
@@ -1426,7 +1429,7 @@ class ClaimController extends Controller
         $content = str_replace('[[$itemsReject]]', implode(",",$itemsReject), $content);
         $content = str_replace('[[$typeGOP]]', $typeGOP, $content);
         $content = str_replace('[[$noteGOP]]', $noteGOP, $content);
-        $content = str_replace('[[$barcode]]', $barcode, $content);  
+        $content = str_replace('[[$barcode]]', $claim->barcode, $content);  
         $content = str_replace('[[$note_pay]]', $note_pay, $content);
         $content = str_replace('[[$applicantName]]', $HBS_CL_CLAIM->applicantName, $content);
         $content = str_replace('[[$benefitOfClaim]]', $benefitOfClaim , $content);

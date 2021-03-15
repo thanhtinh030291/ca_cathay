@@ -34,10 +34,10 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')
         //          ->hourly();command:GetCPS
-        $schedule->command('command:GetCPS')->everyMinute();
-        $schedule->command('command:GetHBS')->everyMinute();
-        $schedule->command('command:GetRenewPayment')->everyMinute();
-        $schedule->command('command:UpdateFile')->everyMinute();
+        $schedule->command('command:GetCPS')->everyTenMinutes();
+        //$schedule->command('command:GetHBS')->everyMinute()->appendOutputTo(storage_path('logs/inspire.log'));
+        //$schedule->command('command:GetRenewPayment')->everyMinute()->appendOutputTo(storage_path('logs/inspire.log'));
+        //$schedule->command('command:UpdateFile')->everyMinute()->appendOutputTo(storage_path('logs/inspire.log'));
         $schedule->command('command:CheckFinishAndPay')->everyTenMinutes();
     }
 
@@ -49,7 +49,6 @@ class Kernel extends ConsoleKernel
     protected function commands()
     {
         $this->load(__DIR__.'/Commands');
-
         require base_path('routes/console.php');
     }
 }
